@@ -1,26 +1,44 @@
 from rest_framework import filters, permissions, viewsets, mixins
 
-# from api.serializers import
 from reviews.models import (
-    Categories,
+    Category,
     Title,
-    Genres,
+    Genre,
     Users,
     Reviews,
     Comments
 )
+from api.serializers import (
+    CategoriesSerializer, GenresSerializer, TitleSerializer,
+    UsersSerializer, ReviewsSerializer, CommentsSerializer
+)
 
 
 class CategoriesViewSet(viewsets.ModelViewSet):
-    pass
+    """Обрабатывает информацию о категориях."""
 
-
-class TitleViewSet(viewsets.ModelViewSet):
-    pass
+    queryset = Category.objects.all()
+    serializer_class = CategoriesSerializer
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
 
 
 class GenresViewSet(viewsets.ModelViewSet):
-    pass
+    """Обрабатывает информацию о жанрах."""
+
+    queryset = Genre.objects.all()
+    serializer_class = GenresSerializer
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
+
+
+class TitleViewSet(viewsets.ModelViewSet):
+    """Обрабатывает информацию о произведениях."""
+
+    queryset = Title.objects.all()
+    serializer_class = TitleSerializer
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
 
 
 class UsersViewSet(viewsets.ModelViewSet):
