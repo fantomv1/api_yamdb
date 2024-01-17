@@ -8,13 +8,15 @@ from reviews.models import (
     Reviews,
     Comments
 )
-from .serializers import (
+from api.serializers import (
     CategoriesSerializer, GenresSerializer, TitleSerializer,
     UsersSerializer, ReviewsSerializer, CommentsSerializer
 )
 
 
 class CategoriesViewSet(viewsets.ModelViewSet):
+    """Обрабатывает информацию о категориях."""
+
     queryset = Category.objects.all()
     serializer_class = CategoriesSerializer
     filter_backends = (filters.SearchFilter,)
@@ -22,6 +24,8 @@ class CategoriesViewSet(viewsets.ModelViewSet):
 
 
 class GenresViewSet(viewsets.ModelViewSet):
+    """Обрабатывает информацию о жанрах."""
+
     queryset = Genre.objects.all()
     serializer_class = GenresSerializer
     filter_backends = (filters.SearchFilter,)
@@ -29,6 +33,8 @@ class GenresViewSet(viewsets.ModelViewSet):
 
 
 class TitleViewSet(viewsets.ModelViewSet):
+    """Обрабатывает информацию о произведениях."""
+
     queryset = Title.objects.all()
     serializer_class = TitleSerializer
     filter_backends = (filters.SearchFilter,)
