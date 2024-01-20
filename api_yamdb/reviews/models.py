@@ -1,8 +1,9 @@
-from django.contrib.auth import get_user_model
+# from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 
-User = get_user_model()  # Временно для работы.
+# User = get_user_model()  # Временно для работы.
 
 
 class Category(models.Model):
@@ -33,7 +34,9 @@ class Genre(models.Model):
 
 class Title(models.Model):
     name = models.CharField('Название', max_length=256)
-    year = models.IntegerField('Год выпуска',)
+    year = models.IntegerField(
+        'Год выпуска',
+    )
     description = models.TextField('Описание', null=True, blank=True)
     genre = models.ManyToManyField(
         Genre,
@@ -47,7 +50,7 @@ class Title(models.Model):
         blank=True,
         null=True,
         verbose_name='Категория',
-        related_name='titles'
+        related_name='titles',
     )
 
     class Meta:
@@ -67,8 +70,13 @@ class GenreTitle(models.Model):
     genre = models.ForeignKey(Genre, on_delete=models.CASCADE)
 
 
-class Users(models.Model):
-    pass
+class User(AbstractUser):
+    email = models.EmailField('Почта', unique=True)
+    bio = models.CharField('Биография', max_length=255, blank=True)
+    role = models.CharField(max_length=50, default='user')
+
+    def __str__(self):
+        return self.username
 
 
 class Reviews(models.Model):
