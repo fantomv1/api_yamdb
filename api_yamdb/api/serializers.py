@@ -6,7 +6,7 @@ from reviews.models import (
     Category,
     Title,
     Genre,
-    Users,
+    User,
     Reviews,
     Comments
 )
@@ -47,7 +47,27 @@ class TitleSerializer(serializers.ModelSerializer):
 
 
 class UsersSerializer(serializers.ModelSerializer):
-    pass
+    class Meta:
+        model = User
+        fields = ('email', 'username',)
+
+    def create(self, validated_data):
+        user = User.objects.create_user(
+            email=validated_data['email'],
+            username=validated_data['username']
+        )
+        return user
+
+
+class TokenObtainWithConfirmationSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    confirmation_code = serializers.CharField()
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'first_name', 'last_name', 'bio']    
 
 
 class ReviewsSerializer(serializers.ModelSerializer):
