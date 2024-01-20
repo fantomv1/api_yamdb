@@ -7,8 +7,9 @@ from reviews.models import (
     Title,
     Genre,
     Users,
-    Reviews,
-    Comments
+    Review,
+    Comment,
+    User_test
 )
 
 YEAR_ERROR = 'Недействительный год выпуска!'
@@ -50,9 +51,23 @@ class UsersSerializer(serializers.ModelSerializer):
     pass
 
 
-class ReviewsSerializer(serializers.ModelSerializer):
-    pass
+class ReviewSerializer(serializers.ModelSerializer):
+    author = serializers.SlugRelatedField(
+        read_only=True,
+        slug_field="username",
+    )
+
+    class Meta:
+        model = Review
+        exclude = ("title_id",)
 
 
-class CommentsSerializer(serializers.ModelSerializer):
-    pass
+class CommentSerializer(serializers.ModelSerializer):
+    author = serializers.SlugRelatedField(
+        read_only=True,
+        slug_field="username",
+    )
+
+    class Meta:
+        model = Comment
+        exclude = ("review_id",)

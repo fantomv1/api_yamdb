@@ -1,8 +1,9 @@
 from django.contrib.auth import get_user_model
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 
-User = get_user_model()  # Временно для работы.
+User_test = get_user_model()  # Временно для работы.
 
 
 class Category(models.Model):
@@ -66,9 +67,42 @@ class Users(models.Model):
     pass
 
 
-class Reviews(models.Model):
-    pass
+class Review(models.Model):
+    title_id = models.ForeignKey(
+        Title,
+        on_delete=models.CASCADE,
+        related_name="reviews",
+        blank=True,  # Для теста.
+        null=True,  # Для теста.
+    )
+    text = models.TextField()
+    author = models.ForeignKey(
+        User_test,
+        on_delete=models.CASCADE,
+        related_name="reviews",
+        blank=True,  # Для теста.
+        null=True,  # Для теста.
+    )
+    score = models.IntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(10)],
+    )  # Временно, до реализации подсчета рейтинга.
+    pub_date = models.DateTimeField("Дата публикации", auto_now_add=True)
 
 
-class Comments(models.Model):
-    pass
+class Comment(models.Model):
+    review_id = models.ForeignKey(
+        Review,
+        on_delete=models.CASCADE,
+        related_name="comments",
+        blank=True,  # Для теста.
+        null=True,  # Для теста.
+    )
+    text = models.TextField()
+    author = models.ForeignKey(
+        User_test,
+        on_delete=models.CASCADE,
+        related_name="comments",
+        blank=True,  # Для теста.
+        null=True,  # Для теста.
+    )
+    pub_date = models.DateTimeField("Дата публикации", auto_now_add=True)
