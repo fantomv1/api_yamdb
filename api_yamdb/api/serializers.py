@@ -15,6 +15,7 @@ YEAR_ERROR = 'Недействительный год выпуска!'
 
 
 class CategoriesSerializer(serializers.ModelSerializer):
+    lookup_field = 'slug'
 
     class Meta:
         model = Category
@@ -22,6 +23,7 @@ class CategoriesSerializer(serializers.ModelSerializer):
 
 
 class GenresSerializer(serializers.ModelSerializer):
+    lookup_field = 'slug'
 
     class Meta:
         model = Genre
