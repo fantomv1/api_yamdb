@@ -8,7 +8,6 @@ from rest_framework import generics, permissions
 from django.core.mail import send_mail
 from django.conf import settings
 
-
 from reviews.models import Category, Title, Genre, User, Reviews, Comments
 from api.serializers import (
     CategoriesSerializer,
@@ -30,6 +29,7 @@ class CategoriesViewSet(viewsets.ModelViewSet):
     serializer_class = CategoriesSerializer
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
+    lookup_field = 'slug'
 
 
 class GenresViewSet(viewsets.ModelViewSet):
@@ -39,6 +39,7 @@ class GenresViewSet(viewsets.ModelViewSet):
     serializer_class = GenresSerializer
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
+    lookup_field = 'slug'
 
 
 class TitleViewSet(viewsets.ModelViewSet):
