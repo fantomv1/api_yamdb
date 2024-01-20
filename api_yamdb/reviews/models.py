@@ -1,9 +1,10 @@
-from django.contrib.auth import get_user_model
+# from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AbstractUser
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 
-User_test = get_user_model()  # Временно для работы.
+# User_test = get_user_model()  # Временно для работы.
 
 
 class Category(models.Model):
@@ -34,13 +35,15 @@ class Genre(models.Model):
 
 class Title(models.Model):
     name = models.CharField('Название', max_length=256)
-    year = models.IntegerField('Год выпуска',)
+    year = models.IntegerField(
+        'Год выпуска',
+    )
     description = models.TextField('Описание', null=True, blank=True)
     genre = models.ManyToManyField(
         Genre,
         blank=True,
-        verbose_name='Жанр',
-        related_name='titles'
+        through='GenreTitle',
+        verbose_name='Жанр'
     )
     category = models.ForeignKey(
         Category,
@@ -48,7 +51,7 @@ class Title(models.Model):
         blank=True,
         null=True,
         verbose_name='Категория',
-        related_name='titles'
+        related_name='titles',
     )
 
     class Meta:
@@ -63,8 +66,18 @@ class Title(models.Model):
         )
 
 
-class Users(models.Model):
-    pass
+class GenreTitle(models.Model):
+    title = models.ForeignKey(Title, on_delete=models.CASCADE)
+    genre = models.ForeignKey(Genre, on_delete=models.CASCADE)
+
+
+class User(AbstractUser):
+    email = models.EmailField('Почта', unique=True)
+    bio = models.CharField('Биография', max_length=255, blank=True)
+    role = models.CharField(max_length=50, default='user')
+
+    def __str__(self):
+        return self.username
 
 
 class Review(models.Model):

@@ -1,19 +1,27 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import filters, permissions, viewsets, mixins
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework import generics, permissions
 
-from reviews.models import (
-    Category,
-    Title,
-    Genre,
-    Users,
-    Review,
-    Comment,
+from django.core.mail import send_mail
+from django.conf import settings
+
+from reviews.models import Category, Title, Genre, User, Review, Comment,
     User_test
-)
 from api.serializers import (
-    CategoriesSerializer, GenresSerializer, TitleSerializer,
-    UsersSerializer, ReviewSerializer, CommentSerializer
+    CategoriesSerializer,
+    GenresSerializer,
+    TitleSerializer,
+    UsersSerializer,
+    TokenObtainWithConfirmationSerializer,
+    UserProfileSerializer,
+    ReviewSerializer,
+    CommentSerializer,
 )
+from api.utils import send_confirmation_email
 from api.import_csv import import_base
 
 
@@ -36,6 +44,7 @@ class CategoriesViewSet(viewsets.ModelViewSet):
     serializer_class = CategoriesSerializer
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
+    lookup_field = 'slug'
 
 
 class GenresViewSet(viewsets.ModelViewSet):
@@ -45,6 +54,7 @@ class GenresViewSet(viewsets.ModelViewSet):
     serializer_class = GenresSerializer
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
+    lookup_field = 'slug'
 
 
 class TitleViewSet(viewsets.ModelViewSet):
@@ -57,8 +67,65 @@ class TitleViewSet(viewsets.ModelViewSet):
 
 
 class UsersViewSet(viewsets.ModelViewSet):
-    pass
+    """Обрабатывает информацию о юзерах."""
 
+    queryset = User.objects.all()
+    serializer_class = UsersSerializer
+
+
+class UserProfileUpdateView(generics.UpdateAPIView):
+    """пользователь отправляет PATCH-запрос на эндпоинт
+    /api/v1/users/me/ и заполняет поля в своём профайле."""
+
+    serializer_class = UserProfileSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
+
+
+class TokenObtainWithConfirmationView(TokenObtainPairView):
+    """Пользователь отправляет пост запрос,
+    и в ответ получает токен."""
+
+    serializer_class = TokenObtainWithConfirmationSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        username = serializer.validated_data['username']
+        confirmation_code = serializer.validated_data['confirmation_code']
+
+        if username == 'valid_username' and confirmation_code == 'valid_code':
+            return super().post(request, *args, **kwargs)
+        else:
+            return Response(
+                {'error': 'Invalid username or confirmation code'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+class SignupView(APIView):
+    """Класс добавления нового пользователя и
+       отправки письма с кодом на почту."""
+
+    def post(self, request, *args, **kwargs):
+        serializer = UsersSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+
+            # Вызов вашей функции для отправки письма с кодом
+            confirmation_code = send_confirmation_email(user.email)
+
+            # Возвращение ответа с данными пользователя и кодом подтверждения
+            response_data = {
+                'user': serializer.data,
+                'confirmation_code': confirmation_code,
+            }
+            return Response(response_data, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class ReviewViewSet(viewsets.ModelViewSet):
     """Обрабатывает информацию об отзывах."""
