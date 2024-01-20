@@ -99,8 +99,8 @@ class SignupView(APIView):
         if serializer.is_valid():
             user = serializer.save()
 
-            # Вызов вашей функции для отправки письма с кодом
-            confirmation_code = send_confirmation_email(user.email)
+            
+            confirmation_code = send_confirmation_email(user.email) # Вызов функции для отправки письма с кодом
 
             # Возвращение ответа с данными пользователя и кодом подтверждения
             response_data = {
