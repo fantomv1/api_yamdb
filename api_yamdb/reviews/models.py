@@ -38,8 +38,8 @@ class Title(models.Model):
     genre = models.ManyToManyField(
         Genre,
         blank=True,
-        verbose_name='Жанр',
-        related_name='titles'
+        through='GenreTitle',
+        verbose_name='Жанр'
     )
     category = models.ForeignKey(
         Category,
@@ -60,6 +60,11 @@ class Title(models.Model):
             f'{self.name[:10]} {self.year} {self.description[:20]}'
             f'{self.genre} {self.category}'
         )
+
+
+class GenreTitle(models.Model):
+    title = models.ForeignKey(Title, on_delete=models.CASCADE)
+    genre = models.ForeignKey(Genre, on_delete=models.CASCADE)
 
 
 class Users(models.Model):
