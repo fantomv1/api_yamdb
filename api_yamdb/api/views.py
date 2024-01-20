@@ -1,16 +1,14 @@
 from django.shortcuts import get_object_or_404
-from rest_framework import filters, permissions, viewsets, mixins
+from rest_framework import filters, permissions, viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework import generics, permissions
 
-from django.core.mail import send_mail
-from django.conf import settings
-
-from reviews.models import Category, Title, Genre, User, Review, Comment,
-    User_test
+# from django.core.mail import send_mail
+# from django.conf import settings
+from reviews.models import Category, Title, Genre, User, Review
 from api.serializers import (
     CategoriesSerializer,
     GenresSerializer,
@@ -22,19 +20,6 @@ from api.serializers import (
     CommentSerializer,
 )
 from api.utils import send_confirmation_email
-from api.import_csv import import_base
-
-
-def test():  # Костыль для работы баз данных
-    # import_base(model=Category, file="D:/Dev/api_yamdb/api_yamdb/static/data/category.csv")
-    # import_base(model=Genre, file="D:/Dev/api_yamdb/api_yamdb/static/data/genre.csv")
-    # import_base(model=Title, file="D:/Dev/api_yamdb/api_yamdb/static/data/titles.csv")
-    # import_base(model=User_test, file="D:/Dev/api_yamdb/api_yamdb/static/data/users.csv")
-    import_base(model=Review, file="D:/Dev/api_yamdb/api_yamdb/static/data/review.csv")
-    # import_base(model=Comment, file="D:/Dev/api_yamdb/api_yamdb/static/data/comments.csv")
-
-
-#test()
 
 
 class CategoriesViewSet(viewsets.ModelViewSet):
@@ -127,6 +112,7 @@ class SignupView(APIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
 class ReviewViewSet(viewsets.ModelViewSet):
     """Обрабатывает информацию об отзывах."""
 
@@ -149,7 +135,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Добавить автора отзыва и id произведения."""
         serializer.save(
-            author=None,  # author=self.request.user,
+            author=self.request.user,
             title_id=self.get_title()
         )
 
@@ -176,6 +162,6 @@ class CommentViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Добавить автора комментария и id отзыва."""
         serializer.save(
-            author=None,  # author=self.request.user,
+            author=self.request.user,
             review_id=self.get_review()
         )

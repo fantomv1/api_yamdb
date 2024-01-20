@@ -1,10 +1,10 @@
-# from django.contrib.auth import get_user_model
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth import get_user_model
+# from django.contrib.auth.models import AbstractUser
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 
-# User_test = get_user_model()  # Временно для работы.
+User = get_user_model()
 
 
 class Category(models.Model):
@@ -71,6 +71,7 @@ class GenreTitle(models.Model):
     genre = models.ForeignKey(Genre, on_delete=models.CASCADE)
 
 
+"""
 class User(AbstractUser):
     email = models.EmailField('Почта', unique=True)
     bio = models.CharField('Биография', max_length=255, blank=True)
@@ -78,6 +79,7 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.username
+"""
 
 
 class Review(models.Model):
@@ -85,20 +87,16 @@ class Review(models.Model):
         Title,
         on_delete=models.CASCADE,
         related_name="reviews",
-        blank=True,  # Для теста.
-        null=True,  # Для теста.
     )
     text = models.TextField()
     author = models.ForeignKey(
-        User_test,
+        User,
         on_delete=models.CASCADE,
         related_name="reviews",
-        blank=True,  # Для теста.
-        null=True,  # Для теста.
     )
     score = models.IntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(10)],
-    )  # Временно, до реализации подсчета рейтинга.
+    )
     pub_date = models.DateTimeField("Дата публикации", auto_now_add=True)
 
 
@@ -107,15 +105,11 @@ class Comment(models.Model):
         Review,
         on_delete=models.CASCADE,
         related_name="comments",
-        blank=True,  # Для теста.
-        null=True,  # Для теста.
     )
     text = models.TextField()
     author = models.ForeignKey(
-        User_test,
+        User,
         on_delete=models.CASCADE,
         related_name="comments",
-        blank=True,  # Для теста.
-        null=True,  # Для теста.
     )
     pub_date = models.DateTimeField("Дата публикации", auto_now_add=True)
