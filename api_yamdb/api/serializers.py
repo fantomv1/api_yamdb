@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 from datetime import datetime
 
 from rest_framework import serializers
@@ -6,10 +7,11 @@ from reviews.models import (
     Category,
     Title,
     Genre,
-    User,
     Review,
     Comment,
 )
+
+User = get_user_model()
 
 YEAR_ERROR = 'Недействительный год выпуска!'
 

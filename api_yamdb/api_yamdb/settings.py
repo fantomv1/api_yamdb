@@ -21,9 +21,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
     'reviews.apps.ReviewsConfig',
     'api.apps.ApiConfig',
+
 ]
+
+AUTH_USER_MODEL = "reviews.MyUser"  # Кастомная модель.
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -89,13 +93,15 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
 EMAIL_HOST = 'smtp.mail.ru'
 
-EMAIL_PORT = 465
+EMAIL_PORT = 587
 
 EMAIL_USE_TLS = True
 
 EMAIL_HOST_USER = 'galaktika_mira_99@mail.ru'
 
 EMAIL_HOST_PASSWORD = 'BMxdbFYhLjABBrBc1Hdi'
+
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 
 # Internationalization
@@ -117,11 +123,13 @@ STATIC_URL = '/static/'
 
 STATICFILES_DIRS = ((BASE_DIR / 'static/'),)
 
-# AUTH_USER_MODEL = "reviews.User" # Кастомная модель, ломает код.
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10,
+
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
 }

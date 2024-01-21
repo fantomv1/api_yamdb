@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from rest_framework import filters, permissions, viewsets
 from rest_framework.views import APIView
@@ -8,7 +9,7 @@ from rest_framework import generics, permissions
 
 # from django.core.mail import send_mail
 # from django.conf import settings
-from reviews.models import Category, Title, Genre, User, Review
+from reviews.models import Category, Title, Genre, Review
 from api.serializers import (
     CategoriesSerializer,
     GenresSerializer,
@@ -20,6 +21,9 @@ from api.serializers import (
     CommentSerializer,
 )
 from api.utils import send_confirmation_email
+
+
+User = get_user_model()
 
 
 class CategoriesViewSet(viewsets.ModelViewSet):
@@ -82,35 +86,44 @@ class TokenObtainWithConfirmationView(TokenObtainPairView):
         username = serializer.validated_data['username']
         confirmation_code = serializer.validated_data['confirmation_code']
 
-        if username == 'valid_username' and confirmation_code == 'valid_code':
+        # Не работает. Выдает отправленные username и код.
+        """if username == 'valid_username' and confirmation_code == 'valid_code':
             return super().post(request, *args, **kwargs)
         else:
             return Response(
                 {'error': 'Invalid username or confirmation code'},
                 status=status.HTTP_400_BAD_REQUEST,
-            )
+            )"""
+        # Заглушка.
+        response_data = {"token": "string" + str(username)}
+        return Response(response_data, status=status.HTTP_200_OK)
 
 
 class SignupView(APIView):
-    """Класс добавления нового пользователя и
-       отправки письма с кодом на почту."""
+    """Регистрирует нового пользователя."""
 
     def post(self, request, *args, **kwargs):
         serializer = UsersSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
 
-            # Вызов вашей функции для отправки письма с кодом
-            confirmation_code = send_confirmation_email(user.email)
+            # Отправить письмо с кодом.
+            #  confirmation_code = send_confirmation_email(user.email)
+            send_confirmation_email(user.email)
 
-            # Возвращение ответа с данными пользователя и кодом подтверждения
-            response_data = {
+            # Вернуть ответ с данными пользователя и кодом подтверждения.
+            # Код подтверждения в ответе не требуется.
+            """response_data = {  #  Не требуется.
                 'user': serializer.data,
                 'confirmation_code': confirmation_code,
-            }
-            return Response(response_data, status=status.HTTP_201_CREATED)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            }"""
+            return Response(  # Просто serializer.data.
+                serializer.data, status=status.HTTP_200_OK  # Поменял код на 200, по ТЗ.
+            )
+        # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        email = serializer.data.get("email")  # Заглушка.
+        send_confirmation_email(email)  # Заглушка.
+        return Response(serializer.data, status=status.HTTP_200_OK)  # Заглушка
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
