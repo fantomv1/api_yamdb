@@ -1,11 +1,14 @@
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
-from rest_framework import filters, permissions, viewsets
+from rest_framework import filters, viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework import generics, permissions
+from rest_framework.permissions import (
+    IsAuthenticatedOrReadOnly, IsAuthenticated
+)
 
 # from django.core.mail import send_mail
 # from django.conf import settings
@@ -19,6 +22,9 @@ from api.serializers import (
     UserProfileSerializer,
     ReviewSerializer,
     CommentSerializer,
+)
+from api.permissions import (
+    IsAdminOrReadOnly, IsAuthorModerAdminOrReadOnly, IsAdmin
 )
 from api.utils import send_confirmation_email
 
@@ -34,6 +40,7 @@ class CategoriesViewSet(viewsets.ModelViewSet):
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
     lookup_field = 'slug'
+    permission_classes = (IsAdminOrReadOnly,)
 
 
 class GenresViewSet(viewsets.ModelViewSet):
@@ -44,6 +51,7 @@ class GenresViewSet(viewsets.ModelViewSet):
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
     lookup_field = 'slug'
+    permission_classes = (IsAdminOrReadOnly,)
 
 
 class TitleViewSet(viewsets.ModelViewSet):
@@ -53,6 +61,7 @@ class TitleViewSet(viewsets.ModelViewSet):
     serializer_class = TitleSerializer
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
+    permission_classes = (IsAdminOrReadOnly,)
 
 
 class UsersViewSet(viewsets.ModelViewSet):
@@ -67,7 +76,7 @@ class UserProfileUpdateView(generics.UpdateAPIView):
     /api/v1/users/me/ и заполняет поля в своём профайле."""
 
     serializer_class = UserProfileSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = (IsAuthenticated,)
 
     def get_object(self):
         return self.request.user
@@ -131,8 +140,8 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     serializer_class = ReviewSerializer
     permission_classes = (
-        # IsAuthorOrReadOnly,
-        # permissions.IsAuthenticatedOrReadOnly,
+        IsAuthenticatedOrReadOnly,
+        IsAuthorModerAdminOrReadOnly
     )
 
     def get_title(self):
@@ -158,8 +167,8 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     serializer_class = CommentSerializer
     permission_classes = (
-        # IsAuthorOrReadOnly,
-        # permissions.IsAuthenticatedOrReadOnly,
+        IsAuthenticatedOrReadOnly,
+        IsAuthorModerAdminOrReadOnly
     )
 
     def get_review(self):
