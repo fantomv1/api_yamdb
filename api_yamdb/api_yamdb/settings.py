@@ -84,10 +84,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-AUTH_USER_MODEL = "reviews.User"
-
-
-# settings.py
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
@@ -120,6 +116,8 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 STATICFILES_DIRS = ((BASE_DIR / 'static/'),)
+
+# AUTH_USER_MODEL = "reviews.User" # Кастомная модель, ломает код.
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

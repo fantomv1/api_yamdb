@@ -1,14 +1,14 @@
-from rest_framework import filters, permissions, viewsets, mixins
+from django.shortcuts import get_object_or_404
+from rest_framework import filters, permissions, viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework import generics, permissions
 
-from django.core.mail import send_mail
-from django.conf import settings
-
-from reviews.models import Category, Title, Genre, User, Reviews, Comments
+# from django.core.mail import send_mail
+# from django.conf import settings
+from reviews.models import Category, Title, Genre, User, Review
 from api.serializers import (
     CategoriesSerializer,
     GenresSerializer,
@@ -16,8 +16,8 @@ from api.serializers import (
     UsersSerializer,
     TokenObtainWithConfirmationSerializer,
     UserProfileSerializer,
-    ReviewsSerializer,
-    CommentsSerializer,
+    ReviewSerializer,
+    CommentSerializer,
 )
 from api.utils import send_confirmation_email
 
@@ -113,9 +113,55 @@ class SignupView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class ReviewsViewSet(viewsets.ModelViewSet):
-    pass
+class ReviewViewSet(viewsets.ModelViewSet):
+    """Обрабатывает информацию об отзывах."""
+
+    serializer_class = ReviewSerializer
+    permission_classes = (
+        # IsAuthorOrReadOnly,
+        # permissions.IsAuthenticatedOrReadOnly,
+    )
+
+    def get_title(self):
+        """Получить произведение."""
+        title_id = self.kwargs.get("title_id")
+        return get_object_or_404(Title, id=title_id)
+
+    def get_queryset(self):
+        """Вернуть все отзывы к произведению."""
+        title = self.get_title()
+        return title.reviews.all()
+
+    def perform_create(self, serializer):
+        """Добавить автора отзыва и id произведения."""
+        serializer.save(
+            author=self.request.user,
+            title_id=self.get_title()
+        )
 
 
-class CommentsViewSet(viewsets.ModelViewSet):
-    pass
+class CommentViewSet(viewsets.ModelViewSet):
+    """Обрабатывает информацию о комментариях."""
+
+    serializer_class = CommentSerializer
+    permission_classes = (
+        # IsAuthorOrReadOnly,
+        # permissions.IsAuthenticatedOrReadOnly,
+    )
+
+    def get_review(self):
+        """Получить отзыв."""
+        review_id = self.kwargs.get("review_id")
+        return get_object_or_404(Review, id=review_id)
+
+    def get_queryset(self):
+        """Вернуть все комментарии к отзыву."""
+        review = self.get_review()
+        return review.comments.all()
+
+    def perform_create(self, serializer):
+        """Добавить автора комментария и id отзыва."""
+        serializer.save(
+            author=self.request.user,
+            review_id=self.get_review()
+        )

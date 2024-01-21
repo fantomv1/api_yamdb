@@ -7,8 +7,8 @@ from reviews.models import (
     Title,
     Genre,
     User,
-    Reviews,
-    Comments
+    Review,
+    Comment,
 )
 
 YEAR_ERROR = 'Недействительный год выпуска!'
@@ -69,12 +69,26 @@ class TokenObtainWithConfirmationSerializer(serializers.Serializer):
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['username', 'email', 'first_name', 'last_name', 'bio']    
+        fields = ['username', 'email', 'first_name', 'last_name', 'bio']
 
 
-class ReviewsSerializer(serializers.ModelSerializer):
-    pass
+class ReviewSerializer(serializers.ModelSerializer):
+    author = serializers.SlugRelatedField(
+        read_only=True,
+        slug_field="username",
+    )
+
+    class Meta:
+        model = Review
+        exclude = ("title_id",)
 
 
-class CommentsSerializer(serializers.ModelSerializer):
-    pass
+class CommentSerializer(serializers.ModelSerializer):
+    author = serializers.SlugRelatedField(
+        read_only=True,
+        slug_field="username",
+    )
+
+    class Meta:
+        model = Comment
+        exclude = ("review_id",)
