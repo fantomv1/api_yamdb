@@ -12,6 +12,14 @@ class MyUser(AbstractUser):
     def __str__(self):
         return self.username
 
+    @property
+    def is_admin(self):
+        return self.role == 'admin'
+
+    @property
+    def is_moder(self):
+        return self.role == 'moderator'
+
 
 User = get_user_model()
 
