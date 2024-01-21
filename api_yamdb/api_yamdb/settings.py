@@ -27,7 +27,7 @@ INSTALLED_APPS = [
 
 ]
 
-AUTH_USER_MODEL = "reviews.MyUser"  # Кастомная модель.
+AUTH_USER_MODEL = "reviews.MyUser"  # Подключить кастомную модель.
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -122,8 +122,6 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 STATICFILES_DIRS = ((BASE_DIR / 'static/'),)
-
-# AUTH_USER_MODEL = "reviews.User" # Кастомная модель, ломает код.
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
