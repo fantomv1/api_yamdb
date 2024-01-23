@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
-from rest_framework import filters, viewsets
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters, viewsets, mixins
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -17,6 +18,7 @@ from api.serializers import (
     CategoriesSerializer,
     GenresSerializer,
     TitleSerializer,
+    GetTitleSerializer,
     UsersSerializer,
     TokenObtainWithConfirmationSerializer,
     UserProfileSerializer,
@@ -26,13 +28,21 @@ from api.serializers import (
 from api.permissions import (
     IsAdminOrReadOnly, IsAuthorModerAdminOrReadOnly, IsAdmin
 )
+from api.filters import TitleFilter
 from api.utils import send_confirmation_email
 
 
 User = get_user_model()
 
 
-class CategoriesViewSet(viewsets.ModelViewSet):
+class GetPostDeleteViewSet(
+    mixins.CreateModelMixin, mixins.DestroyModelMixin,
+    mixins.ListModelMixin, viewsets.GenericViewSet
+):
+    pass
+
+
+class CategoriesViewSet(GetPostDeleteViewSet):
     """Обрабатывает информацию о категориях."""
 
     queryset = Category.objects.all()
@@ -43,7 +53,7 @@ class CategoriesViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAdminOrReadOnly,)
 
 
-class GenresViewSet(viewsets.ModelViewSet):
+class GenresViewSet(GetPostDeleteViewSet):
     """Обрабатывает информацию о жанрах."""
 
     queryset = Genre.objects.all()
@@ -58,10 +68,18 @@ class TitleViewSet(viewsets.ModelViewSet):
     """Обрабатывает информацию о произведениях."""
 
     queryset = Title.objects.all()
-    serializer_class = TitleSerializer
-    filter_backends = (filters.SearchFilter,)
+    filter_backends = (filters.SearchFilter, DjangoFilterBackend)
     search_fields = ('name',)
     permission_classes = (IsAdminOrReadOnly,)
+    filterset_class = TitleFilter
+    http_method_names = [
+        m for m in viewsets.ModelViewSet.http_method_names if m not in ['put']
+    ]
+
+    def get_serializer_class(self):
+        if self.action in ('list', 'retrieve'):
+            return GetTitleSerializer
+        return TitleSerializer
 
 
 class UsersViewSet(viewsets.ModelViewSet):
@@ -143,6 +161,9 @@ class ReviewViewSet(viewsets.ModelViewSet):
         IsAuthenticatedOrReadOnly,
         IsAuthorModerAdminOrReadOnly
     )
+    http_method_names = [
+        m for m in viewsets.ModelViewSet.http_method_names if m not in ['put']
+    ]
 
     def get_title(self):
         """Получить произведение."""
@@ -170,6 +191,9 @@ class CommentViewSet(viewsets.ModelViewSet):
         IsAuthenticatedOrReadOnly,
         IsAuthorModerAdminOrReadOnly
     )
+    http_method_names = [
+        m for m in viewsets.ModelViewSet.http_method_names if m not in ['put']
+    ]
 
     def get_review(self):
         """Получить отзыв."""
