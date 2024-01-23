@@ -59,40 +59,21 @@ class GetTitleSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class UsersSerializer(serializers.ModelSerializer):
+class SignUpSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('email', 'username',)
-
-    def create(self, validated_data):
-        user = User.objects.create_user(
-            email=validated_data['email'],
-            username=validated_data['username']
+        fields = (
+            'email',
+            'username',
         )
-        return user
 
 
 class TokenObtainWithConfirmationSerializer(serializers.Serializer):
     username = serializers.CharField()
     confirmation_code = serializers.CharField()
 
-    def validate(self, data):
-        username = data.get('username')
-        confirmation_code = data.get('confirmation_code')
 
-        # Получение пользователя по имени пользователя
-        user = User.objects.filter(username=username).first()
-
-        # Проверка наличия пользователя и совпадение кода подтверждения
-        if user and confirmation_code == user.confirmation_code:
-            data['user'] = user
-        else:
-            raise serializers.ValidationError("Invalid username or confirmation code")
-
-        return data
-
-
-class UserProfileSerializer(serializers.ModelSerializer):
+class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['username', 'email', 'first_name', 'last_name', 'bio']
