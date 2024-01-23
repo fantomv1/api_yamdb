@@ -82,7 +82,11 @@ class TokenObtainWithConfirmationView(TokenObtainPairView):
         username = serializer.validated_data['username']
         confirmation_code = serializer.validated_data['confirmation_code']
 
-        if username == 'valid_username' and confirmation_code == 'valid_code':
+        # Получение пользователя по имени пользователя
+        user = User.objects.filter(username=username).first()
+
+        # Проверка наличия пользователя и совпадение кода подтверждения
+        if user and confirmation_code == user.confirmation_code:
             return super().post(request, *args, **kwargs)
         else:
             return Response(
