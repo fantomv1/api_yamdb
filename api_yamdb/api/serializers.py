@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 from datetime import datetime
 
 from rest_framework import serializers
@@ -6,10 +7,11 @@ from reviews.models import (
     Category,
     Title,
     Genre,
-    User,
-    Reviews,
-    Comments
+    Review,
+    Comment,
 )
+
+User = get_user_model()
 
 YEAR_ERROR = 'Недействительный год выпуска!'
 
@@ -48,6 +50,15 @@ class TitleSerializer(serializers.ModelSerializer):
         return value
 
 
+class GetTitleSerializer(serializers.ModelSerializer):
+    category = CategoriesSerializer(read_only=True)
+    genre = GenresSerializer(read_only=True, many=True)
+
+    class Meta:
+        model = Title
+        fields = '__all__'
+
+
 class UsersSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -84,12 +95,26 @@ class TokenObtainWithConfirmationSerializer(serializers.Serializer):
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['username', 'email', 'first_name', 'last_name', 'bio']    
+        fields = ['username', 'email', 'first_name', 'last_name', 'bio']
 
 
-class ReviewsSerializer(serializers.ModelSerializer):
-    pass
+class ReviewSerializer(serializers.ModelSerializer):
+    author = serializers.SlugRelatedField(
+        read_only=True,
+        slug_field="username",
+    )
+
+    class Meta:
+        model = Review
+        exclude = ("title_id",)
 
 
-class CommentsSerializer(serializers.ModelSerializer):
-    pass
+class CommentSerializer(serializers.ModelSerializer):
+    author = serializers.SlugRelatedField(
+        read_only=True,
+        slug_field="username",
+    )
+
+    class Meta:
+        model = Comment
+        exclude = ("review_id",)

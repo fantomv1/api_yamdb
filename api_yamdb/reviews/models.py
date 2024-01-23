@@ -1,9 +1,27 @@
-# from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AbstractUser
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 
-# User = get_user_model()  # Временно для работы.
+class MyUser(AbstractUser):
+    email = models.EmailField('Почта', unique=True,)
+    bio = models.CharField('Биография', max_length=255, blank=True,)
+    role = models.CharField(max_length=50, default='user',)
+
+    def __str__(self):
+        return self.username
+
+    @property
+    def is_admin(self):
+        return self.role == 'admin'
+
+    @property
+    def is_moder(self):
+        return self.role == 'moderator'
+
+
+User = get_user_model()
 
 
 class Category(models.Model):
@@ -70,19 +88,50 @@ class GenreTitle(models.Model):
     genre = models.ForeignKey(Genre, on_delete=models.CASCADE)
 
 
-class User(AbstractUser):
-    email = models.EmailField('Почта', unique=True)
-    bio = models.CharField('Биография', max_length=255, blank=True)
-    role = models.CharField(max_length=50, default='user')
-    confirmation_code = models.CharField(max_length=6)
+class Review(models.Model):
+    title_id = models.ForeignKey(
+        Title,
+        on_delete=models.CASCADE,
+        related_name="reviews",
+    )
+    text = models.TextField()
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="reviews",
+    )
+    score = models.IntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(10)],
+    )
+    pub_date = models.DateTimeField("Дата публикации", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Отзыв"
+        verbose_name_plural = "Отзывы"
+        ordering = ("-pub_date",)
 
     def __str__(self):
-        return self.username
+        return (f"{self.text[:10]} {self.author} {self.score}")
 
 
-class Reviews(models.Model):
-    pass
+class Comment(models.Model):
+    review_id = models.ForeignKey(
+        Review,
+        on_delete=models.CASCADE,
+        related_name="comments",
+    )
+    text = models.TextField()
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="comments",
+    )
+    pub_date = models.DateTimeField("Дата публикации", auto_now_add=True)
 
+    class Meta:
+        verbose_name = "Комментарий"
+        verbose_name_plural = "Комментарии"
+        ordering = ("-pub_date",)
 
-class Comments(models.Model):
-    pass
+    def __str__(self):
+        return (f"{self.text[:10]} {self.author}")
