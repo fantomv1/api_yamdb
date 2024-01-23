@@ -50,6 +50,15 @@ class TitleSerializer(serializers.ModelSerializer):
         return value
 
 
+class GetTitleSerializer(serializers.ModelSerializer):
+    category = CategoriesSerializer(read_only=True)
+    genre = GenresSerializer(read_only=True, many=True)
+
+    class Meta:
+        model = Title
+        fields = '__all__'
+
+
 class UsersSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
