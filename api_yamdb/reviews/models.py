@@ -5,9 +5,21 @@ from django.db import models
 
 
 class MyUser(AbstractUser):
+
+    ADMIN = 'admin'
+    MODERATOR = 'moderator'
+    USER = 'user'
+
+    ROLE_CHOICES = [
+        (ADMIN, 'Администратор'),
+        (MODERATOR, 'Модератор'),
+        (USER, 'Пользователь'),
+    ]
+
     email = models.EmailField('Почта', unique=True,)
     bio = models.CharField('Биография', max_length=255, blank=True,)
-    role = models.CharField(max_length=50, default='user',)
+    role = models.CharField(max_length=50, default='user', choices=ROLE_CHOICES,)
+    confirmation_code = models.CharField('Код подтверждения', max_length=6,)
 
     def __str__(self):
         return self.username

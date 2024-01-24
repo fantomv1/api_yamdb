@@ -60,17 +60,13 @@ class GetTitleSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class UsersSerializer(serializers.ModelSerializer):
+class SignUpSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('email', 'username',)
-
-    def create(self, validated_data):
-        user = User.objects.create_user(
-            email=validated_data['email'],
-            username=validated_data['username']
+        fields = (
+            'email',
+            'username',
         )
-        return user
 
 
 class TokenObtainWithConfirmationSerializer(serializers.Serializer):
@@ -78,10 +74,17 @@ class TokenObtainWithConfirmationSerializer(serializers.Serializer):
     confirmation_code = serializers.CharField()
 
 
-class UserProfileSerializer(serializers.ModelSerializer):
+class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['username', 'email', 'first_name', 'last_name', 'bio']
+        fields = [
+            'username',
+            'email',
+            'first_name',
+            'last_name',
+            'bio',
+            'role',
+        ]
 
 
 class ReviewSerializer(serializers.ModelSerializer):

@@ -3,15 +3,18 @@ from django.core.exceptions import SuspiciousOperation
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
+
 from rest_framework import filters, viewsets, mixins
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework_simplejwt.views import TokenObtainPairView
-from rest_framework import generics
+from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework.permissions import (
-    IsAuthenticatedOrReadOnly, IsAuthenticated
+    IsAuthenticatedOrReadOnly,
+    IsAuthenticated,
+    AllowAny,
 )
+from rest_framework.generics import RetrieveUpdateAPIView, CreateAPIView
 
 from reviews.models import Category, Title, Genre, Review
 from api.serializers import (
@@ -19,25 +22,30 @@ from api.serializers import (
     GenresSerializer,
     TitleSerializer,
     GetTitleSerializer,
-    UsersSerializer,
+    SignUpSerializer,
     TokenObtainWithConfirmationSerializer,
-    UserProfileSerializer,
+    UserSerializer,
     ReviewSerializer,
     CommentSerializer,
 )
 from api.permissions import (
-    IsAdminOrReadOnly, IsAuthorModerAdminOrReadOnly
+    IsAdmin,
+    IsAdminOrReadOnly,
+    IsAuthorModerAdminOrReadOnly,
 )
 from api.filters import TitleFilter
 from api.utils import send_confirmation_email
+from api.pagination import CustomPagination
 
 
 User = get_user_model()
 
 
 class GetPostDeleteViewSet(
-    mixins.CreateModelMixin, mixins.DestroyModelMixin,
-    mixins.ListModelMixin, viewsets.GenericViewSet
+    mixins.CreateModelMixin,
+    mixins.DestroyModelMixin,
+    mixins.ListModelMixin,
+    viewsets.GenericViewSet,
 ):
     pass
 
@@ -86,76 +94,108 @@ class TitleViewSet(viewsets.ModelViewSet):
         return TitleSerializer
 
 
-class UsersViewSet(viewsets.ModelViewSet):
-    """Обрабатывает информацию о юзерах."""
+class UsersCreateView(CreateAPIView):
+    """Создание нового пользователя."""
 
-    queryset = User.objects.all()
-    serializer_class = UsersSerializer
+    serializer_class = UserSerializer
+    permission_classes = (IsAdmin,)
+    pagination_class = CustomPagination
+    lookup_field = 'username'
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['username']
 
 
-class UserProfileUpdateView(generics.UpdateAPIView):
-    """пользователь отправляет PATCH-запрос на эндпоинт
+class UserProfileUpdateView(RetrieveUpdateAPIView):
+    """Пользователь отправляет PATCH-запрос на эндпоинт
     /api/v1/users/me/ и заполняет поля в своём профайле."""
 
-    serializer_class = UserProfileSerializer
+    serializer_class = UserSerializer
     permission_classes = (IsAuthenticated,)
 
     def get_object(self):
         return self.request.user
 
 
-class TokenObtainWithConfirmationView(TokenObtainPairView):
+class TokenObtainWithConfirmationView(CreateAPIView):
     """Пользователь отправляет пост запрос,
     и в ответ получает токен."""
 
     serializer_class = TokenObtainWithConfirmationSerializer
+    permission_classes = (AllowAny,)
 
-    def post(self, request, *args, **kwargs):
+    def get_queryset(self):
+        return get_object_or_404(User, username=self.kwargs['username'])
+
+    def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         username = serializer.validated_data['username']
         confirmation_code = serializer.validated_data['confirmation_code']
 
-        # Не работает. Выдает отправленные username и код.
-        """if username == 'valid_username' and confirmation_code == 'valid_code':
-            return super().post(request, *args, **kwargs)
-        else:
+        if username == "me":
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        user = get_object_or_404(User, username=username)
+
+        if confirmation_code == user.confirmation_code:
+            token = AccessToken.for_user(user)
             return Response(
-                {'error': 'Invalid username or confirmation code'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )"""
-        # Заглушка.
-        response_data = {"token": "string" + str(username)}
-        return Response(response_data, status=status.HTTP_200_OK)
+                {"token": str(token)},
+                status=status.HTTP_200_OK,
+            )
+
+        return Response(status=status.HTTP_400_BAD_REQUEST)
 
 
 class SignupView(APIView):
     """Регистрирует нового пользователя."""
 
     def post(self, request, *args, **kwargs):
-        serializer = UsersSerializer(data=request.data)
+        username = request.data.get('username', None)
+        email = request.data.get('email', None)
+
+        # Проверка, если значение поля username равно "me"
+        if username == "me":
+            return Response(
+                {'detail': 'Недопустимое значение "me" для username'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Проверяем, существует ли пользователь с таким именем пользователя
+        existing_user = User.objects.filter(username=username).first()
+        if existing_user:
+            # Проверяем, соответствует ли email зарег-ному пользователю
+            if existing_user.email != email:
+                return Response(
+                    {
+                        'detail': (
+                            'Несоответствие email для зарегистрированного'
+                            ' пользователя'
+                        )
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            return Response(
+                {'detail': 'Пользователь уже зарегистрирован'},
+                status=status.HTTP_200_OK,
+            )
+
+        serializer = SignUpSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
 
             # Отправить письмо с кодом.
-            #  confirmation_code = send_confirmation_email(user.email)
-            send_confirmation_email(user.email)
+            confirmation_code = send_confirmation_email(user.email)
 
-            # Вернуть ответ с данными пользователя и кодом подтверждения.
-            # Код подтверждения в ответе не требуется.
-            """response_data = {  #  Не требуется.
-                'user': serializer.data,
-                'confirmation_code': confirmation_code,
-            }"""
-            return Response(  # Просто serializer.data.
-                serializer.data, status=status.HTTP_200_OK  # Поменял код на 200, по ТЗ.
-            )
-        # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        email = serializer.data.get("email")  # Заглушка.
-        send_confirmation_email(email)  # Заглушка.
-        return Response(serializer.data, status=status.HTTP_200_OK)  # Заглушка
-    
+            user.confirmation_code = confirmation_code
+            user.save()
+
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        errors = serializer.errors
+        return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class ReviewViewSet(viewsets.ModelViewSet):
     """Обрабатывает информацию об отзывах."""
@@ -200,7 +240,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     permission_classes = (
         IsAuthenticatedOrReadOnly,
-        IsAuthorModerAdminOrReadOnly
+        IsAuthorModerAdminOrReadOnly,
     )
     http_method_names = [
         m for m in viewsets.ModelViewSet.http_method_names if m not in ['put']
@@ -218,7 +258,4 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """Добавить автора комментария и id отзыва."""
-        serializer.save(
-            author=self.request.user,
-            review_id=self.get_review()
-        )
+        serializer.save(author=self.request.user, review_id=self.get_review())
