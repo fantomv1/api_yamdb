@@ -3,11 +3,12 @@ from django.core.exceptions import SuspiciousOperation
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-
+from django.db.utils import IntegrityError
 from rest_framework import filters, viewsets, mixins
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework.permissions import (
     IsAuthenticatedOrReadOnly,
@@ -29,13 +30,12 @@ from api.serializers import (
     CommentSerializer,
 )
 from api.permissions import (
-    IsAdmin,
     IsAdminOrReadOnly,
     IsAuthorModerAdminOrReadOnly,
+    IsAdmin,
 )
 from api.filters import TitleFilter
 from api.utils import send_confirmation_email
-from api.pagination import CustomPagination
 
 
 User = get_user_model()
@@ -94,15 +94,12 @@ class TitleViewSet(viewsets.ModelViewSet):
         return TitleSerializer
 
 
-class UsersCreateView(CreateAPIView):
-    """Создание нового пользователя."""
+class UsersViewSet(viewsets.ModelViewSet):  # ВЬЮСЕТ НА ПРОСМОТР И ДОБАВЛЕНИЕ
+    """Обрабатывает информацию о юзерах."""
 
     serializer_class = UserSerializer
     permission_classes = (IsAdmin,)
-    pagination_class = CustomPagination
     lookup_field = 'username'
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['username']
 
 
 class UserProfileUpdateView(RetrieveUpdateAPIView):
@@ -153,33 +150,15 @@ class SignupView(APIView):
 
     def post(self, request, *args, **kwargs):
         username = request.data.get('username', None)
-        email = request.data.get('email', None)
 
         # Проверка, если значение поля username равно "me"
         if username == "me":
-            return Response(
-                {'detail': 'Недопустимое значение "me" для username'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response({'detail': 'Недопустимое значение "me" для username'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Проверяем, существует ли пользователь с таким именем пользователя
         existing_user = User.objects.filter(username=username).first()
         if existing_user:
-            # Проверяем, соответствует ли email зарег-ному пользователю
-            if existing_user.email != email:
-                return Response(
-                    {
-                        'detail': (
-                            'Несоответствие email для зарегистрированного'
-                            ' пользователя'
-                        )
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            return Response(
-                {'detail': 'Пользователь уже зарегистрирован'},
-                status=status.HTTP_200_OK,
-            )
+            return Response({'detail': 'Пользователь уже зарегистрирован'}, status=status.HTTP_200_OK)
 
         serializer = SignUpSerializer(data=request.data)
         if serializer.is_valid():
@@ -195,7 +174,6 @@ class SignupView(APIView):
 
         errors = serializer.errors
         return Response(errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 class ReviewViewSet(viewsets.ModelViewSet):
     """Обрабатывает информацию об отзывах."""
