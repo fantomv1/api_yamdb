@@ -1,7 +1,8 @@
 from django.contrib.auth import get_user_model
+from django.core.exceptions import SuspiciousOperation
+from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-
 from rest_framework import filters, viewsets, mixins
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -27,13 +28,12 @@ from api.serializers import (
     CommentSerializer,
 )
 from api.permissions import (
-    IsAdmin,
     IsAdminOrReadOnly,
     IsAuthorModerAdminOrReadOnly,
+    IsAdmin,
 )
 from api.filters import TitleFilter
 from api.utils import send_confirmation_email
-from api.pagination import CustomPagination
 
 
 User = get_user_model()
@@ -73,7 +73,6 @@ class GenresViewSet(GetPostDeleteViewSet):
 class TitleViewSet(viewsets.ModelViewSet):
     """Обрабатывает информацию о произведениях."""
 
-    queryset = Title.objects.all()
     filter_backends = (filters.SearchFilter, DjangoFilterBackend)
     search_fields = ('name',)
     permission_classes = (IsAdminOrReadOnly,)
@@ -82,21 +81,23 @@ class TitleViewSet(viewsets.ModelViewSet):
         m for m in viewsets.ModelViewSet.http_method_names if m not in ['put']
     ]
 
+    def get_queryset(self):
+        return Title.objects.annotate(
+            rating=Avg("reviews__score")
+        ).order_by("-year")
+
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
             return GetTitleSerializer
         return TitleSerializer
 
 
-class UsersCreateView(CreateAPIView):
-    """Создание нового пользователя."""
+class UsersViewSet(viewsets.ModelViewSet):  # ВЬЮСЕТ НА ПРОСМОТР И ДОБАВЛЕНИЕ
+    """Обрабатывает информацию о юзерах."""
 
     serializer_class = UserSerializer
     permission_classes = (IsAdmin,)
-    pagination_class = CustomPagination
     lookup_field = 'username'
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['username']
 
 
 class UserProfileUpdateView(RetrieveUpdateAPIView):
@@ -147,32 +148,20 @@ class SignupView(APIView):
 
     def post(self, request, *args, **kwargs):
         username = request.data.get('username', None)
-        email = request.data.get('email', None)
 
         # Проверка, если значение поля username равно "me"
         if username == "me":
             return Response(
                 {'detail': 'Недопустимое значение "me" для username'},
-                status=status.HTTP_400_BAD_REQUEST,
+                status=status.HTTP_400_BAD_REQUEST
             )
 
         # Проверяем, существует ли пользователь с таким именем пользователя
         existing_user = User.objects.filter(username=username).first()
         if existing_user:
-            # Проверяем, соответствует ли email зарег-ному пользователю
-            if existing_user.email != email:
-                return Response(
-                    {
-                        'detail': (
-                            'Несоответствие email для зарегистрированного'
-                            ' пользователя'
-                        )
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
             return Response(
                 {'detail': 'Пользователь уже зарегистрирован'},
-                status=status.HTTP_200_OK,
+                status=status.HTTP_200_OK
             )
 
         serializer = SignUpSerializer(data=request.data)
@@ -211,11 +200,21 @@ class ReviewViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Вернуть все отзывы к произведению."""
         title = self.get_title()
-        return title.reviews.all()
+        queryset = title.reviews.all()
+        return queryset
 
     def perform_create(self, serializer):
         """Добавить автора отзыва и id произведения."""
-        serializer.save(author=self.request.user, title_id=self.get_title())
+        title_id = self.kwargs.get("title_id")
+        if Review.objects.filter(
+            title_id=title_id,
+            author=self.request.user
+        ).exists():
+            raise SuspiciousOperation('Invalid JSON')
+        serializer.save(
+            author=self.request.user,
+            title_id=self.get_title()
+        )
 
 
 class CommentViewSet(viewsets.ModelViewSet):

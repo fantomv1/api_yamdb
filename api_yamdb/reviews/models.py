@@ -18,7 +18,9 @@ class MyUser(AbstractUser):
 
     email = models.EmailField('Почта', unique=True,)
     bio = models.CharField('Биография', max_length=255, blank=True,)
-    role = models.CharField(max_length=50, default='user', choices=ROLE_CHOICES,)
+    role = models.CharField(
+        max_length=50, default='user', choices=ROLE_CHOICES,
+    )
     confirmation_code = models.CharField('Код подтверждения', max_length=6,)
 
     def __str__(self):
@@ -121,6 +123,12 @@ class Review(models.Model):
         verbose_name = "Отзыв"
         verbose_name_plural = "Отзывы"
         ordering = ("-pub_date",)
+        constraints = (
+            models.constraints.UniqueConstraint(
+                fields=("title_id", "author"),
+                name='unique_person'
+            ),
+        )
 
     def __str__(self):
         return (f"{self.text[:10]} {self.author} {self.score}")
