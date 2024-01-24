@@ -1,4 +1,6 @@
 from django.contrib.auth import get_user_model
+from django.core.exceptions import SuspiciousOperation
+from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, viewsets, mixins
@@ -6,13 +8,11 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.views import TokenObtainPairView
-from rest_framework import generics, permissions
+from rest_framework import generics
 from rest_framework.permissions import (
     IsAuthenticatedOrReadOnly, IsAuthenticated
 )
 
-# from django.core.mail import send_mail
-# from django.conf import settings
 from reviews.models import Category, Title, Genre, Review
 from api.serializers import (
     CategoriesSerializer,
@@ -26,7 +26,7 @@ from api.serializers import (
     CommentSerializer,
 )
 from api.permissions import (
-    IsAdminOrReadOnly, IsAuthorModerAdminOrReadOnly, IsAdmin
+    IsAdminOrReadOnly, IsAuthorModerAdminOrReadOnly
 )
 from api.filters import TitleFilter
 from api.utils import send_confirmation_email
@@ -67,7 +67,6 @@ class GenresViewSet(GetPostDeleteViewSet):
 class TitleViewSet(viewsets.ModelViewSet):
     """Обрабатывает информацию о произведениях."""
 
-    queryset = Title.objects.all()
     filter_backends = (filters.SearchFilter, DjangoFilterBackend)
     search_fields = ('name',)
     permission_classes = (IsAdminOrReadOnly,)
@@ -75,6 +74,11 @@ class TitleViewSet(viewsets.ModelViewSet):
     http_method_names = [
         m for m in viewsets.ModelViewSet.http_method_names if m not in ['put']
     ]
+
+    def get_queryset(self):
+        return Title.objects.annotate(
+            rating=Avg("reviews__score")
+        ).order_by("-year")
 
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
@@ -151,7 +155,7 @@ class SignupView(APIView):
         email = serializer.data.get("email")  # Заглушка.
         send_confirmation_email(email)  # Заглушка.
         return Response(serializer.data, status=status.HTTP_200_OK)  # Заглушка
-
+    
 
 class ReviewViewSet(viewsets.ModelViewSet):
     """Обрабатывает информацию об отзывах."""
@@ -159,7 +163,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
     permission_classes = (
         IsAuthenticatedOrReadOnly,
-        IsAuthorModerAdminOrReadOnly
+        IsAuthorModerAdminOrReadOnly,
     )
     http_method_names = [
         m for m in viewsets.ModelViewSet.http_method_names if m not in ['put']
@@ -173,10 +177,17 @@ class ReviewViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Вернуть все отзывы к произведению."""
         title = self.get_title()
-        return title.reviews.all()
+        queryset = title.reviews.all()
+        return queryset
 
     def perform_create(self, serializer):
         """Добавить автора отзыва и id произведения."""
+        title_id = self.kwargs.get("title_id")
+        if Review.objects.filter(
+            title_id=title_id,
+            author=self.request.user
+        ).exists():
+            raise SuspiciousOperation('Invalid JSON')
         serializer.save(
             author=self.request.user,
             title_id=self.get_title()
