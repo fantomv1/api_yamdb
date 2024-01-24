@@ -18,7 +18,9 @@ class MyUser(AbstractUser):
 
     email = models.EmailField('Почта', unique=True,)
     bio = models.CharField('Биография', max_length=255, blank=True,)
-    role = models.CharField(max_length=50, default='user', choices=ROLE_CHOICES,)
+    role = models.CharField(
+        max_length=50, default='user', choices=ROLE_CHOICES,
+    )
     confirmation_code = models.CharField('Код подтверждения', max_length=6,)
 
     def __str__(self):

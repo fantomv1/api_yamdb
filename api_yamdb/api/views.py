@@ -3,12 +3,10 @@ from django.core.exceptions import SuspiciousOperation
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from django.db.utils import IntegrityError
 from rest_framework import filters, viewsets, mixins
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework.permissions import (
     IsAuthenticatedOrReadOnly,
@@ -153,12 +151,18 @@ class SignupView(APIView):
 
         # Проверка, если значение поля username равно "me"
         if username == "me":
-            return Response({'detail': 'Недопустимое значение "me" для username'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'detail': 'Недопустимое значение "me" для username'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         # Проверяем, существует ли пользователь с таким именем пользователя
         existing_user = User.objects.filter(username=username).first()
         if existing_user:
-            return Response({'detail': 'Пользователь уже зарегистрирован'}, status=status.HTTP_200_OK)
+            return Response(
+                {'detail': 'Пользователь уже зарегистрирован'},
+                status=status.HTTP_200_OK
+            )
 
         serializer = SignUpSerializer(data=request.data)
         if serializer.is_valid():
@@ -174,6 +178,7 @@ class SignupView(APIView):
 
         errors = serializer.errors
         return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class ReviewViewSet(viewsets.ModelViewSet):
     """Обрабатывает информацию об отзывах."""
