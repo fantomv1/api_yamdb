@@ -1,3 +1,4 @@
+from datetime import timedelta
 from pathlib import Path
 
 
@@ -22,8 +23,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework_simplejwt',
     'reviews.apps.ReviewsConfig',
     'api.apps.ApiConfig',
+
 
 ]
 
@@ -95,7 +98,9 @@ EMAIL_HOST = 'smtp.mail.ru'
 
 EMAIL_PORT = 587
 
-EMAIL_USE_TLS = True
+EMAIL_USE_TLS = False
+
+EMAIL_USE_SSL = True
 
 EMAIL_HOST_USER = 'galaktika_mira_99@mail.ru'
 
@@ -132,4 +137,10 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
+}
+
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=5),
+    'AUTH_HEADER_TYPES': ('Bearer',),
 }
