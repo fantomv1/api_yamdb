@@ -76,6 +76,7 @@ class TokenObtainWithConfirmationSerializer(serializers.Serializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
+<<<<<<< HEAD
         fields = [
             'username',
             'email',
@@ -84,6 +85,9 @@ class UserSerializer(serializers.ModelSerializer):
             'bio',
             'role',
         ]
+=======
+        fields = ['username', 'email', 'first_name', 'last_name', 'bio']
+>>>>>>> parent of e13732d (ПОБЕДИТЬ 5 ОШИБОК)
 
 
 class ReviewSerializer(serializers.ModelSerializer):
