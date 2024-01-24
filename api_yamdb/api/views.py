@@ -11,7 +11,6 @@ from rest_framework.permissions import (
     IsAuthenticatedOrReadOnly,
     IsAuthenticated,
     AllowAny,
-    IsAdminUser,
 )
 from rest_framework.generics import RetrieveUpdateAPIView, CreateAPIView
 
@@ -89,14 +88,13 @@ class TitleViewSet(viewsets.ModelViewSet):
         return TitleSerializer
 
 
-class UsersViewSet(viewsets.ModelViewSet):
-    """Обрабатывает информацию о юзерах."""
+class UsersCreateView(CreateAPIView):
+    """Создание нового пользователя."""
 
-    queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = (IsAdmin,)
-    lookup_field = 'username'
     pagination_class = CustomPagination
+    lookup_field = 'username'
     filter_backends = [filters.SearchFilter]
     search_fields = ['username']
 
@@ -161,7 +159,7 @@ class SignupView(APIView):
         # Проверяем, существует ли пользователь с таким именем пользователя
         existing_user = User.objects.filter(username=username).first()
         if existing_user:
-            # Проверяем, соответствует ли email зарегистрированному пользователю
+            # Проверяем, соответствует ли email зарег-ному пользователю
             if existing_user.email != email:
                 return Response(
                     {
