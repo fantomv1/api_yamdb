@@ -1,48 +1,43 @@
-from django.contrib.auth import get_user_model
 from datetime import datetime
 
+from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from reviews.models import (
-    Category,
-    Title,
-    Genre,
-    Review,
-    Comment,
-)
+from reviews.models import Category, Comment, Genre, Review, Title
+
+
+YEAR_ERROR = "Недействительный год выпуска!"
 
 User = get_user_model()
 
-YEAR_ERROR = 'Недействительный год выпуска!'
-
 
 class CategoriesSerializer(serializers.ModelSerializer):
-    lookup_field = 'slug'
+    lookup_field = "slug"
 
     class Meta:
         model = Category
-        exclude = ('id',)
+        exclude = ("id",)
 
 
 class GenresSerializer(serializers.ModelSerializer):
-    lookup_field = 'slug'
+    lookup_field = "slug"
 
     class Meta:
         model = Genre
-        exclude = ('id',)
+        exclude = ("id",)
 
 
 class TitleSerializer(serializers.ModelSerializer):
     category = serializers.SlugRelatedField(
-        slug_field='slug', queryset=Category.objects.all()
+        slug_field="slug", queryset=Category.objects.all()
     )
     genre = serializers.SlugRelatedField(
-        slug_field='slug', queryset=Genre.objects.all(), many=True
+        slug_field="slug", queryset=Genre.objects.all(), many=True
     )
 
     class Meta:
         model = Title
-        fields = '__all__'
+        fields = "__all__"
 
     def validate_year(self, value):
         if value > datetime.now().year:
@@ -58,15 +53,15 @@ class GetTitleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Title
-        fields = '__all__'
+        fields = "__all__"
 
 
 class SignUpSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
-            'email',
-            'username',
+            "email",
+            "username",
         )
 
 
@@ -78,7 +73,14 @@ class TokenObtainWithConfirmationSerializer(serializers.Serializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['username', 'email', 'first_name', 'last_name', 'bio', 'role',]
+        fields = [
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "bio",
+            "role",
+        ]
 
 
 class ReviewSerializer(serializers.ModelSerializer):
@@ -89,7 +91,7 @@ class ReviewSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Review
-        exclude = ("title_id",)
+        exclude = ("title",)
 
 
 class CommentSerializer(serializers.ModelSerializer):

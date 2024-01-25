@@ -128,7 +128,7 @@ class Test05ReviewAPI:
                 text='Текст второго отзыва',
                 score='5',
                 author=admin,
-                title_id=title  # Было title=title - поле, которого нет.
+                title=title
             )
         except IntegrityError:
             pass

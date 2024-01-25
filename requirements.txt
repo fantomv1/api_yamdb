@@ -8,3 +8,4 @@ pytest-pythonpath==0.7.3
 djangorestframework-simplejwt==5.3.1
 django-filter==23.5
 Markdown==3.5.2
+python-dotenv==1.0.1
