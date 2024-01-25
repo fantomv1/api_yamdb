@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 
@@ -35,7 +36,6 @@ from api.permissions import (
 )
 from api.filters import TitleFilter
 from api.utils import send_confirmation_email
-
 
 
 User = get_user_model()
@@ -84,6 +84,11 @@ class TitleViewSet(viewsets.ModelViewSet):
         m for m in viewsets.ModelViewSet.http_method_names if m not in ['put']
     ]
 
+    def get_queryset(self):
+        return Title.objects.annotate(
+            rating=Avg("reviews__score")
+        ).order_by("-year")
+
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
             return GetTitleSerializer
@@ -109,20 +114,9 @@ class UsersViewSet(viewsets.ModelViewSet):
             return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
         return super().update(request, *args, **kwargs)
 
-
-class UserProfileUpdateView(RetrieveUpdateAPIView):
-    """Пользователь отправляет PATCH-запрос на эндпоинт
-    /api/v1/users/me/ и заполняет поля в своём профайле."""
-
-    serializer_class = UserSerializer
-    permission_classes = (IsAuthenticated,)
-
-    def get_object(self):
-        return self.request.user
-    
     @action(
         methods=['GET', 'PATCH'], detail=False, url_path='me',
-        permission_classes=(permissions.IsAuthenticated,)
+        permission_classes=(IsAuthenticated,)
     )
     def get_update_me(self, request):
         """Получение и обновление информации о текущем пользователе."""
@@ -133,8 +127,7 @@ class UserProfileUpdateView(RetrieveUpdateAPIView):
         )
         if serializer.is_valid():
             if self.request.method == 'PATCH':
-                if 'role' in request.data:
-                    request.data.pop('role')
+                serializer.validated_data.pop('role', None)
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(

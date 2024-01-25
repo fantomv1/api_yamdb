@@ -2,6 +2,8 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from reviews.validators import validate_username
+from django.contrib.auth.validators import UnicodeUsernameValidator
 
 
 class MyUser(AbstractUser):
@@ -16,17 +18,27 @@ class MyUser(AbstractUser):
         (USER, 'Пользователь'),
     ]
 
+    username = models.CharField(
+        max_length=150,
+        unique=True,
+        validators=(validate_username, UnicodeUsernameValidator())
+    )
     email = models.EmailField('Почта', unique=True,)
     bio = models.CharField('Биография', max_length=255, blank=True,)
-    role = models.CharField(max_length=50, default='user', choices=ROLE_CHOICES,)
+    role = models.CharField(
+        max_length=50, default='user', choices=ROLE_CHOICES,
+    )
     confirmation_code = models.CharField('Код подтверждения', max_length=6,)
 
+    class Meta:
+        ordering = ('pk',)
+
     def __str__(self):
-        return self.username
+        return self.username[:15]
 
     @property
     def is_admin(self):
-        return self.role == 'admin'
+        return self.role == 'admin' or self.is_superuser
 
     @property
     def is_moder(self):
@@ -121,6 +133,12 @@ class Review(models.Model):
         verbose_name = "Отзыв"
         verbose_name_plural = "Отзывы"
         ordering = ("-pub_date",)
+        constraints = (
+            models.constraints.UniqueConstraint(
+                fields=("title_id", "author"),
+                name='unique_person'
+            ),
+        )
 
     def __str__(self):
         return (f"{self.text[:10]} {self.author} {self.score}")
