@@ -2,8 +2,9 @@ from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 
-from rest_framework import filters, viewsets, mixins
+from rest_framework import filters, permissions, status, viewsets, mixins
 from rest_framework.views import APIView
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import AccessToken
@@ -102,6 +103,12 @@ class UsersViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return User.objects.all()
 
+    def update(self, request, *args, **kwargs):
+        """Обновление пользователя."""
+        if request.method == 'PUT':
+            return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        return super().update(request, *args, **kwargs)
+
 
 class UserProfileUpdateView(RetrieveUpdateAPIView):
     """Пользователь отправляет PATCH-запрос на эндпоинт
@@ -112,6 +119,27 @@ class UserProfileUpdateView(RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user
+    
+    @action(
+        methods=['GET', 'PATCH'], detail=False, url_path='me',
+        permission_classes=(permissions.IsAuthenticated,)
+    )
+    def get_update_me(self, request):
+        """Получение и обновление информации о текущем пользователе."""
+        serializer = self.get_serializer(
+            request.user,
+            data=request.data,
+            partial=True
+        )
+        if serializer.is_valid():
+            if self.request.method == 'PATCH':
+                if 'role' in request.data:
+                    request.data.pop('role')
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(
+            serializer.errors, status=status.HTTP_400_BAD_REQUEST
+        )
 
 
 class TokenObtainWithConfirmationView(CreateAPIView):
