@@ -1,10 +1,13 @@
 from django.contrib.auth import get_user_model
 from django.core.exceptions import SuspiciousOperation
 from django.db.models import Avg
+from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters, viewsets, mixins
+
+from rest_framework import filters, permissions, status, viewsets, mixins
 from rest_framework.views import APIView
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import AccessToken
@@ -14,6 +17,7 @@ from rest_framework.permissions import (
     AllowAny,
 )
 from rest_framework.generics import RetrieveUpdateAPIView, CreateAPIView
+from rest_framework.pagination import PageNumberPagination
 
 from reviews.models import Category, Title, Genre, Review
 from api.serializers import (
@@ -28,9 +32,9 @@ from api.serializers import (
     CommentSerializer,
 )
 from api.permissions import (
+    IsAdmin,
     IsAdminOrReadOnly,
     IsAuthorModerAdminOrReadOnly,
-    IsAdmin,
 )
 from api.filters import TitleFilter
 from api.utils import send_confirmation_email
@@ -92,23 +96,44 @@ class TitleViewSet(viewsets.ModelViewSet):
         return TitleSerializer
 
 
-class UsersViewSet(viewsets.ModelViewSet):  # ВЬЮСЕТ НА ПРОСМОТР И ДОБАВЛЕНИЕ
-    """Обрабатывает информацию о юзерах."""
+class UsersViewSet(viewsets.ModelViewSet):
+    """Создание нового пользователя."""
 
     serializer_class = UserSerializer
     permission_classes = (IsAdmin,)
+    pagination_class = PageNumberPagination
     lookup_field = 'username'
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['username']
 
+    def get_queryset(self):
+        return User.objects.all()
 
-class UserProfileUpdateView(RetrieveUpdateAPIView):
-    """Пользователь отправляет PATCH-запрос на эндпоинт
-    /api/v1/users/me/ и заполняет поля в своём профайле."""
+    def update(self, request, *args, **kwargs):
+        """Обновление пользователя."""
+        if request.method == 'PUT':
+            return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        return super().update(request, *args, **kwargs)
 
-    serializer_class = UserSerializer
-    permission_classes = (IsAuthenticated,)
-
-    def get_object(self):
-        return self.request.user
+    @action(
+        methods=['GET', 'PATCH'], detail=False, url_path='me',
+        permission_classes=(IsAuthenticated,)
+    )
+    def get_update_me(self, request):
+        """Получение и обновление информации о текущем пользователе."""
+        serializer = self.get_serializer(
+            request.user,
+            data=request.data,
+            partial=True
+        )
+        if serializer.is_valid():
+            if self.request.method == 'PATCH':
+                serializer.validated_data.pop('role', None)
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(
+            serializer.errors, status=status.HTTP_400_BAD_REQUEST
+        )
 
 
 class TokenObtainWithConfirmationView(CreateAPIView):
@@ -148,20 +173,32 @@ class SignupView(APIView):
 
     def post(self, request, *args, **kwargs):
         username = request.data.get('username', None)
+        email = request.data.get('email', None)
 
         # Проверка, если значение поля username равно "me"
         if username == "me":
             return Response(
                 {'detail': 'Недопустимое значение "me" для username'},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         # Проверяем, существует ли пользователь с таким именем пользователя
         existing_user = User.objects.filter(username=username).first()
         if existing_user:
+            # Проверяем, соответствует ли email зарег-ному пользователю
+            if existing_user.email != email:
+                return Response(
+                    {
+                        'detail': (
+                            'Несоответствие email для зарегистрированного'
+                            ' пользователя'
+                        )
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             return Response(
                 {'detail': 'Пользователь уже зарегистрирован'},
-                status=status.HTTP_200_OK
+                status=status.HTTP_200_OK,
             )
 
         serializer = SignUpSerializer(data=request.data)

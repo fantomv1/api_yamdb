@@ -9,9 +9,9 @@ from reviews.models import (
     Category,
     Title,
     Genre,
-    Users,
-    Reviews,
-    Comments,
+    User,
+    Review,
+    Comment,
     GenreTitle
 )
 
@@ -66,11 +66,11 @@ class Command(BaseCommand):
         reader = find_data('review.csv')
         next(reader, None)
         for row in reader:
-            data, status = Reviews.objects.get_or_create(
+            data, status = Review.objects.get_or_create(
                 id=row[0],
                 title_id=get_object_or_404(Title, id=row[1]),
                 text=row[2],
-                author=get_object_or_404(Users, id=row[3]),
+                author=get_object_or_404(User, id=row[3]),
                 score=row[4],
                 pub_date=row[5]
             )
@@ -78,18 +78,18 @@ class Command(BaseCommand):
         reader = find_data('comments.csv')
         next(reader, None)
         for row in reader:
-            data, status = Comments.objects.get_or_create(
+            data, status = Comment.objects.get_or_create(
                 id=row[0],
-                review_id=get_object_or_404(Reviews, id=row[1]),
+                review_id=get_object_or_404(Review, id=row[1]),
                 text=row[2],
-                author=get_object_or_404(Users, id=row[3]),
+                author=get_object_or_404(User, id=row[3]),
                 pub_date=row[4]
             )
 
         reader = find_data('users.csv')
         next(reader, None)
         for row in reader:
-            data, status = Users.objects.get_or_create(
+            data, status = User.objects.get_or_create(
                 id=row[0],
                 username=row[1],
                 email=row[2],

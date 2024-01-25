@@ -10,7 +10,6 @@ from api.views import (
     ReviewViewSet,
     CommentViewSet,
     SignupView,
-    UserProfileUpdateView,
 )
 
 router_v1 = DefaultRouter()
@@ -29,17 +28,11 @@ router_v1.register(
 )
 
 urlpatterns = [
-    path(
-        'v1/users/me/',
-        UserProfileUpdateView.as_view(),
-        name='user_profile_update',
-    ),
-    path('v1/', include(router_v1.urls)),
     path('v1/auth/signup/', SignupView.as_view()),
     path(
         'v1/auth/token/',
         TokenObtainWithConfirmationView.as_view(),
         name='token_obtain_with_confirmation',
     ),
-
+    path('v1/', include(router_v1.urls)),
 ]

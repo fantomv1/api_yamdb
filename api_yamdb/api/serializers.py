@@ -54,6 +54,7 @@ class GetTitleSerializer(serializers.ModelSerializer):
     category = CategoriesSerializer(read_only=True)
     genre = GenresSerializer(read_only=True, many=True)
     rating = serializers.IntegerField()
+    rating = serializers.IntegerField()
 
     class Meta:
         model = Title
@@ -77,9 +78,7 @@ class TokenObtainWithConfirmationSerializer(serializers.Serializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = [
-            'username', 'email', 'first_name', 'last_name', 'bio', 'role'
-        ]
+        fields = ['username', 'email', 'first_name', 'last_name', 'bio', 'role',]
 
 
 class ReviewSerializer(serializers.ModelSerializer):
