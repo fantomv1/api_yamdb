@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.core.exceptions import SuspiciousOperation
 from rest_framework import serializers
 
 from reviews.models import Category, Comment, Genre, Review, Title
@@ -37,7 +38,7 @@ class TitleSerializer(serializers.ModelSerializer):
 class GetTitleSerializer(serializers.ModelSerializer):
     category = CategoriesSerializer(read_only=True)
     genre = GenresSerializer(read_only=True, many=True)
-    rating = serializers.IntegerField(read_only=True)  # Какое дефолтное значение?
+    rating = serializers.IntegerField(read_only=True, default=None)
 
     class Meta:
         model = Title

@@ -215,9 +215,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """Вернуть все отзывы к произведению."""
-        title = self.get_title()
-        queryset = title.reviews.all()
-        return queryset
+        return self.get_title().reviews.all()
 
     def perform_create(self, serializer):
         """Добавить автора отзыва и id произведения."""

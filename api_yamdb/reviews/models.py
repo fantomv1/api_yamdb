@@ -9,6 +9,7 @@ from django.db import models
 
 from reviews.validators import validate_username
 
+
 YEAR_ERROR = "Недействительный год выпуска!"
 
 
@@ -69,6 +70,7 @@ class CategoryGenreModel(models.Model):
     slug = models.SlugField(unique=True)
 
     class Meta:
+        abstract = True  # Абстрактная модель.
         ordering = ("name",)
 
     def __str__(self):
@@ -78,7 +80,7 @@ class CategoryGenreModel(models.Model):
 class Category(CategoryGenreModel):
     name = models.CharField("Название", max_length=256)
 
-    class Meta:
+    class Meta(CategoryGenreModel.Meta):  # Добавил наследование (Meta наследуется отдельно)
         verbose_name = "Категория"
         verbose_name_plural = "Категории"
 
@@ -86,7 +88,7 @@ class Category(CategoryGenreModel):
 class Genre(CategoryGenreModel):
     name = models.CharField("Название", max_length=256)
 
-    class Meta:
+    class Meta(CategoryGenreModel.Meta):  # Добавил наследование.
         verbose_name = "Жанр"
         verbose_name_plural = "Жанры"
 
@@ -145,7 +147,7 @@ class Review(models.Model):
         on_delete=models.CASCADE,
         related_name="reviews",
     )
-    score = models.IntegerField(
+    score = models.PositiveSmallIntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(10)],
     )
     pub_date = models.DateTimeField("Дата публикации", auto_now_add=True)
