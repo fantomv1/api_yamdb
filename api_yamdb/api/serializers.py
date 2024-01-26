@@ -1,18 +1,12 @@
-from datetime import datetime
-
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
 from reviews.models import Category, Comment, Genre, Review, Title
 
-
-YEAR_ERROR = "Недействительный год выпуска!"
-
 User = get_user_model()
 
 
 class CategoriesSerializer(serializers.ModelSerializer):
-    lookup_field = "slug"
 
     class Meta:
         model = Category
@@ -20,7 +14,6 @@ class CategoriesSerializer(serializers.ModelSerializer):
 
 
 class GenresSerializer(serializers.ModelSerializer):
-    lookup_field = "slug"
 
     class Meta:
         model = Genre
@@ -38,18 +31,13 @@ class TitleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Title
         fields = "__all__"
-
-    def validate_year(self, value):
-        if value > datetime.now().year:
-            raise serializers.ValidationError(YEAR_ERROR)
-        return value
+        extra_kwargs = {'genre': {'required': True}}  # Возможно так сделать обязательным
 
 
 class GetTitleSerializer(serializers.ModelSerializer):
     category = CategoriesSerializer(read_only=True)
     genre = GenresSerializer(read_only=True, many=True)
-    rating = serializers.IntegerField()
-    rating = serializers.IntegerField()
+    rating = serializers.IntegerField(read_only=True)  # Какое дефолтное значение?
 
     class Meta:
         model = Title

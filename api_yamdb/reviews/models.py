@@ -1,10 +1,15 @@
+from datetime import datetime
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.core.validators import MaxValueValidator, MinValueValidator
+from django.core.exceptions import ValidationError
 from django.db import models
 
 from reviews.validators import validate_username
+
+YEAR_ERROR = "Недействительный год выпуска!"
 
 
 class MyUser(AbstractUser):
@@ -34,7 +39,7 @@ class MyUser(AbstractUser):
     )
     role = models.CharField(
         max_length=50,
-        default="user",
+        default=USER,
         choices=ROLE_CHOICES,
     )
     confirmation_code = models.CharField(
@@ -50,46 +55,53 @@ class MyUser(AbstractUser):
 
     @property
     def is_admin(self):
-        return self.role == "admin" or self.is_superuser
+        return self.role == self.ADMIN or self.is_superuser
 
     @property
     def is_moder(self):
-        return self.role == "moderator"
+        return self.role == self.MODERATOR
 
 
 User = get_user_model()
 
 
-class Category(models.Model):
-    name = models.CharField("Название", max_length=256)
+class CategoryGenreModel(models.Model):
     slug = models.SlugField(unique=True)
+
+    class Meta:
+        ordering = ("name",)
+
+    def __str__(self):
+        return self.name[:15]
+
+
+class Category(CategoryGenreModel):
+    name = models.CharField("Название", max_length=256)
 
     class Meta:
         verbose_name = "Категория"
         verbose_name_plural = "Категории"
-        ordering = ("name",)
-
-    def __str__(self):
-        return self.name[:15]
 
 
-class Genre(models.Model):
+class Genre(CategoryGenreModel):
     name = models.CharField("Название", max_length=256)
-    slug = models.SlugField(unique=True)
 
     class Meta:
         verbose_name = "Жанр"
         verbose_name_plural = "Жанры"
-        ordering = ("name",)
 
-    def __str__(self):
-        return self.name[:15]
+
+def validate_year(value):
+    if value > datetime.now().year:
+        raise ValidationError(YEAR_ERROR)
+    return value
 
 
 class Title(models.Model):
     name = models.CharField("Название", max_length=256)
-    year = models.IntegerField(
+    year = models.SmallIntegerField(
         "Год выпуска",
+        validators=[validate_year]
     )
     description = models.TextField("Описание", null=True, blank=True)
     genre = models.ManyToManyField(

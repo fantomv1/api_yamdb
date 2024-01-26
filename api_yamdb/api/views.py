@@ -3,7 +3,7 @@ from django.core.exceptions import SuspiciousOperation
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters, mixins, status, viewsets
+from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.generics import CreateAPIView
 from rest_framework.pagination import PageNumberPagination
@@ -17,6 +17,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import AccessToken
 
 from api.filters import TitleFilter
+from api.mixins import GetPostDeleteViewSet
 from api.permissions import (
     IsAdmin,
     IsAdminOrReadOnly,
@@ -40,24 +41,11 @@ from reviews.models import Category, Genre, Review, Title
 User = get_user_model()
 
 
-class GetPostDeleteViewSet(
-    mixins.CreateModelMixin,
-    mixins.DestroyModelMixin,
-    mixins.ListModelMixin,
-    viewsets.GenericViewSet,
-):
-    pass
-
-
 class CategoriesViewSet(GetPostDeleteViewSet):
     """Обрабатывает информацию о категориях."""
 
     queryset = Category.objects.all()
     serializer_class = CategoriesSerializer
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ("name",)
-    lookup_field = "slug"
-    permission_classes = (IsAdminOrReadOnly,)
 
 
 class GenresViewSet(GetPostDeleteViewSet):
@@ -65,10 +53,6 @@ class GenresViewSet(GetPostDeleteViewSet):
 
     queryset = Genre.objects.all()
     serializer_class = GenresSerializer
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ("name",)
-    lookup_field = "slug"
-    permission_classes = (IsAdminOrReadOnly,)
 
 
 class TitleViewSet(viewsets.ModelViewSet):
@@ -78,6 +62,7 @@ class TitleViewSet(viewsets.ModelViewSet):
     search_fields = ("name",)
     permission_classes = (IsAdminOrReadOnly,)
     filterset_class = TitleFilter
+    filterset_fields = ('year',)
     http_method_names = [
         m for m in viewsets.ModelViewSet.http_method_names if m not in ["put"]
     ]
@@ -104,16 +89,13 @@ class UsersViewSet(viewsets.ModelViewSet):
     lookup_field = "username"
     filter_backends = [filters.SearchFilter]
     search_fields = ["username"]
+    http_method_names = [
+        m for m in viewsets.ModelViewSet.http_method_names if m not in ["put"]
+    ]
 
     def get_queryset(self):
         """Получить queryset."""
         return User.objects.all()
-
-    def update(self, request, *args, **kwargs):
-        """Обновить профиль пользователя."""
-        if request.method == "PUT":
-            return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
-        return super().update(request, *args, **kwargs)
 
     @action(
         methods=["GET", "PATCH"],
@@ -172,8 +154,8 @@ class SignupView(APIView):
     def post(self, request, *args, **kwargs):
         """Проверить и зарегистрировать нового пользователя."""
 
-        username = request.data.get("username", None)
-        email = request.data.get("email", None)
+        username = request.data.get("username")
+        email = request.data.get("email")
 
         if username == "me":
             return Response(
@@ -211,8 +193,7 @@ class SignupView(APIView):
 
             return Response(serializer.data, status=status.HTTP_200_OK)
 
-        errors = serializer.errors
-        return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
