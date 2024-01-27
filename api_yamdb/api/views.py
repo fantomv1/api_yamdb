@@ -1,5 +1,4 @@
 from django.contrib.auth import get_user_model
-from django.core.exceptions import SuspiciousOperation
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
@@ -153,7 +152,6 @@ class SignupView(APIView):
 
     def post(self, request, *args, **kwargs):
         """Проверить и зарегистрировать нового пользователя."""
-
         username = request.data.get("username")
         email = request.data.get("email")
 
@@ -219,18 +217,17 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """Добавить автора отзыва и id произведения."""
-        title = self.kwargs.get("title_id")
-        if Review.objects.filter(
-            title=title, author=self.request.user
-        ).exists():
-            raise SuspiciousOperation("Invalid JSON")
         if serializer.is_valid():
             serializer.save(
                 author=self.request.user, title=self.get_title()
             )
 
-    def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
+    def get_serializer_context(self):
+        """Добавить автора отзыва и id произведения в context."""
+        return {
+            "title": self.kwargs.get("title_id"),
+            "author": self.request.user
+        }
 
 
 class CommentViewSet(viewsets.ModelViewSet):
@@ -247,8 +244,10 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def get_review(self):
         """Получить отзыв."""
-        review_id = self.kwargs.get("review_id")
-        return get_object_or_404(Review, id=review_id)
+        return get_object_or_404(
+            Review,
+            id=self.kwargs.get("review_id")
+        )
 
     def get_queryset(self):
         """Вернуть все комментарии к отзыву."""
@@ -257,4 +256,4 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """Добавить автора комментария и id отзыва."""
-        serializer.save(author=self.request.user, review_id=self.get_review())
+        serializer.save(author=self.request.user, review=self.get_review())

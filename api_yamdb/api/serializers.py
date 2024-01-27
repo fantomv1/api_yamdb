@@ -1,5 +1,4 @@
 from django.contrib.auth import get_user_model
-from django.core.exceptions import SuspiciousOperation
 from rest_framework import serializers
 
 from reviews.models import Category, Comment, Genre, Review, Title
@@ -94,6 +93,16 @@ class ReviewSerializer(serializers.ModelSerializer):
         model = Review
         exclude = ("title",)
 
+    def create(self, validated_data):
+        title = self.context["title"]
+        author = self.context["author"]
+        if Review.objects.filter(
+            title=title,
+            author=author
+        ).exists():
+            raise serializers.ValidationError("Отзыв уже создан.")
+        return super().create(validated_data)
+
 
 class CommentSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
@@ -103,4 +112,4 @@ class CommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
-        exclude = ("review_id",)
+        exclude = ("review",)
