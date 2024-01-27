@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 
 def send_confirmation_email(email):
     """Сгенерировать и отправить токен подтверждения."""
-    user = get_user_model().objects.get(email=email)  # Предположим, что у вас есть поле email
+    user = get_user_model().objects.get(email=email)
     confirmation_token = default_token_generator.make_token(user)
     
     subject = "Код подтверждения"
