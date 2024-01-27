@@ -21,18 +21,30 @@ class GenresSerializer(serializers.ModelSerializer):
         exclude = ("id",)
 
 
+class CategoriesTitle(serializers.SlugRelatedField):
+    def to_representation(self, value):
+        serializer = CategoriesSerializer(value)
+        return serializer.data
+
+
+class GenresTitle(serializers.SlugRelatedField):
+    def to_representation(self, value):
+        serializer = GenresSerializer(value)
+        return serializer.data
+
+
 class TitleSerializer(serializers.ModelSerializer):
-    category = serializers.SlugRelatedField(
+    category = CategoriesTitle(
         slug_field="slug", queryset=Category.objects.all()
     )
-    genre = serializers.SlugRelatedField(
-        slug_field="slug", queryset=Genre.objects.all(), many=True
+    genre = GenresTitle(
+        slug_field="slug", queryset=Genre.objects.all(), many=True,
+        allow_empty=False, required=True
     )
 
     class Meta:
         model = Title
         fields = "__all__"
-        extra_kwargs = {'genre': {'required': True}}  # Возможно так сделать обязательным
 
 
 class GetTitleSerializer(serializers.ModelSerializer):

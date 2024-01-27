@@ -93,4 +93,4 @@ class Command(BaseCommand):
                 last_name=row[6],
             )
 
-        print("Данные загружены!")
+        self.stdout.write(self.style.SUCCESS("Данные загружены!"))
