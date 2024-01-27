@@ -108,7 +108,7 @@ class UsersViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(
             request.user, data=request.data, partial=True
         )
-        if serializer.is_valid():
+        if serializer.is_valid(raise_exception=True):
             if self.request.method == "PATCH":
                 serializer.validated_data.pop("role", None)
             serializer.save()
@@ -134,9 +134,6 @@ class TokenObtainWithConfirmationView(CreateAPIView):
         username = serializer.validated_data["username"]
         confirmation_code = serializer.validated_data["confirmation_code"]
 
-        if username == "me":
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-
         user = get_object_or_404(User, username=username)
 
         if confirmation_code == user.confirmation_code:
@@ -156,12 +153,6 @@ class SignupView(APIView):
 
         username = request.data.get("username")
         email = request.data.get("email")
-
-        if username == "me":
-            return Response(
-                {"detail": 'Недопустимое значение "me" для username'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
 
         # Проверить, существует ли пользователь с таким именем пользователя.
         existing_user = User.objects.filter(username=username).first()

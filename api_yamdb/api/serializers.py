@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.core.exceptions import SuspiciousOperation
+from rest_framework.exceptions import ValidationError
 from rest_framework import serializers
 
 from reviews.models import Category, Comment, Genre, Review, Title
@@ -65,10 +66,20 @@ class SignUpSerializer(serializers.ModelSerializer):
             "username",
         )
 
+    def validate_username(self, value):
+        if value.lower() == "me":
+            raise ValidationError('Недопустимое значение "me" для username')
+        return value    
+
 
 class TokenObtainWithConfirmationSerializer(serializers.Serializer):
     username = serializers.CharField()
     confirmation_code = serializers.CharField()
+
+    def validate_username(self, value):
+        if value.lower() == "me":
+            raise ValidationError('Недопустимое значение "me" для username')
+        return value
 
 
 class UserSerializer(serializers.ModelSerializer):
