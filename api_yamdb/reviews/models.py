@@ -13,7 +13,7 @@ from reviews.validators import validate_username
 YEAR_ERROR = "Недействительный год выпуска!"
 
 
-class MyUser(AbstractUser):
+class User(AbstractUser):
     ADMIN = "admin"
     MODERATOR = "moderator"
     USER = "user"
@@ -33,9 +33,8 @@ class MyUser(AbstractUser):
         "Почта",
         unique=True,
     )
-    bio = models.CharField(
+    bio = models.TextField(
         "Биография",
-        max_length=255,
         blank=True,
     )
     role = models.CharField(
