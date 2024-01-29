@@ -9,26 +9,6 @@ from reviews.models import Category, Comment, Genre, Review, Title
 User = get_user_model()
 
 
-class ValidateMixin:
-    def validate(self, data):
-        if User.objects.filter(
-            username=data.get('username'), email=data.get('email')
-        ).exists():
-            return data
-        elif User.objects.filter(username=data.get('username')).exists():
-            raise serializers.ValidationError('Это имя уже занято')
-        elif User.objects.filter(email=data.get('email')).exists():
-            raise serializers.ValidationError('Эта почта уже занята')
-        return data
-
-    def validate_username(self, value):
-        if value == 'me':
-            raise serializers.ValidationError(
-                'Вы не можете использовать это имя'
-            )
-        return value
-
-
 class CategoriesSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -79,7 +59,7 @@ class GetTitleSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class SignUpSerializer(ValidateMixin, serializers.ModelSerializer):
+class SignUpSerializer(serializers.ModelSerializer):
     username = serializers.RegexField(regex=r'^[\w.@+-]+\Z', max_length=150)
     email = serializers.EmailField(max_length=254)
 
@@ -90,8 +70,26 @@ class SignUpSerializer(ValidateMixin, serializers.ModelSerializer):
             "username",
         )
 
+    def validate(self, data):
+        if User.objects.filter(
+            username=data.get('username'), email=data.get('email')
+        ).exists():
+            return data
+        elif User.objects.filter(username=data.get('username')).exists():
+            raise serializers.ValidationError('Это имя уже занято')
+        elif User.objects.filter(email=data.get('email')).exists():
+            raise serializers.ValidationError('Эта почта уже занята')
+        return data
 
-class TokenObtainWithConfirmationSerializer(ValidateMixin, serializers.Serializer):
+    def validate_username(self, value):
+        if value == 'me':
+            raise serializers.ValidationError(
+                'Вы не можете использовать это имя'
+            )
+        return value
+
+
+class TokenObtainWithConfirmationSerializer(serializers.Serializer):
     username = serializers.CharField()
     confirmation_code = serializers.CharField()
 
