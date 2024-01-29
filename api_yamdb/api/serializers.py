@@ -1,31 +1,12 @@
 from django.contrib.auth import get_user_model
 from django.core.exceptions import SuspiciousOperation
 from rest_framework.exceptions import ValidationError
-from rest_framework import serializers
+from rest_framework import serializers, status
+from rest_framework.response import Response
 
 from reviews.models import Category, Comment, Genre, Review, Title
 
 User = get_user_model()
-
-
-class ValidateMixin:
-    def validate(self, data):
-        if User.objects.filter(
-            username=data.get('username'), email=data.get('email')
-        ).exists():
-            return data
-        elif User.objects.filter(username=data.get('username')).exists():
-            raise serializers.ValidationError('Это имя уже занято')
-        elif User.objects.filter(email=data.get('email')).exists():
-            raise serializers.ValidationError('Эта почта уже занята')
-        return data
-
-    def validate_username(self, value):
-        if value == 'me':
-            raise serializers.ValidationError(
-                'Вы не можете использовать это имя'
-            )
-        return value
 
 
 class CategoriesSerializer(serializers.ModelSerializer):
@@ -78,7 +59,7 @@ class GetTitleSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class SignUpSerializer(ValidateMixin, serializers.ModelSerializer):
+class SignUpSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
@@ -87,20 +68,29 @@ class SignUpSerializer(ValidateMixin, serializers.ModelSerializer):
             "username",
         )
 
-    def validate_username(self, value):
-        if value.lower() == "me":
-            raise ValidationError('Недопустимое значение "me" для username')
-        return value
+    def validate(self, data):
+        username = data.get("username")
+        email = data.get("email")
+        existing_user = User.objects.filter(username=username).first()
+        if existing_user:
+            if existing_user.email != email:
+                raise ValidationError(
+                    "Несоответствие email для зарегистрированного"
+                    " пользователя"
+                )
+            raise ValidationError(
+                "Пользователь уже зарегистрирован"
+            )
+        return data
 
 
-class TokenObtainWithConfirmationSerializer(ValidateMixin, serializers.Serializer):
+class TokenObtainWithConfirmationSerializer(serializers.Serializer):
     username = serializers.CharField()
     confirmation_code = serializers.CharField()
 
-    def validate_username(self, value):
-        if value.lower() == "me":
-            raise ValidationError('Недопустимое значение "me" для username')
-        return value
+    class Meta:
+        model = User
+        fields = ('username', 'confirmation_code')
 
 
 class UserSerializer(serializers.ModelSerializer):
