@@ -151,7 +151,7 @@ class SignupView(APIView):
     def post(self, request, *args, **kwargs):
         """Проверить и зарегистрировать нового пользователя."""
 
-        # Проверить, существует ли пользователь с таким именем пользователя.
+        """# Проверить, существует ли пользователь с таким именем пользователя.
         username = request.data.get("username")
         email = request.data.get("email")
         existing_user = User.objects.filter(username=username).first()
@@ -169,11 +169,11 @@ class SignupView(APIView):
             return Response(
                 {"detail": "Пользователь уже зарегистрирован"},
                 status=status.HTTP_200_OK,
-            )
+            )"""
 
         serializer = SignUpSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user, created = User.objects.get_or_create(**serializer.validated_data)
+        if serializer.is_valid(raise_exception=True):
+            user, created = User.objects.get_or_create(**serializer.validated_data)
 
         # Отправить письмо с кодом.
         confirmation_code = send_confirmation_email(user.email)

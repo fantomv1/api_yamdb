@@ -68,9 +68,9 @@ class SignUpSerializer(serializers.ModelSerializer):
             "username",
         )
 
-    def validate(self, data):
-        username = data.get("username")
-        email = data.get("email")
+    def create(self, validated_data):
+        username = validated_data["username"]
+        email = validated_data["email"]
         existing_user = User.objects.filter(username=username).first()
         if existing_user:
             if existing_user.email != email:
@@ -81,7 +81,7 @@ class SignUpSerializer(serializers.ModelSerializer):
             raise ValidationError(
                 "Пользователь уже зарегистрирован"
             )
-        return data
+        return super().create(validated_data)
 
 
 class TokenObtainWithConfirmationSerializer(serializers.Serializer):
