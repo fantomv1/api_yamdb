@@ -79,6 +79,7 @@ class GetTitleSerializer(serializers.ModelSerializer):
 
 
 class SignUpSerializer(ValidateMixin, serializers.ModelSerializer):
+
     class Meta:
         model = User
         fields = (
@@ -89,7 +90,7 @@ class SignUpSerializer(ValidateMixin, serializers.ModelSerializer):
     def validate_username(self, value):
         if value.lower() == "me":
             raise ValidationError('Недопустимое значение "me" для username')
-        return value    
+        return value
 
 
 class TokenObtainWithConfirmationSerializer(ValidateMixin, serializers.Serializer):

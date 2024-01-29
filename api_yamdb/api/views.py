@@ -152,18 +152,16 @@ class SignupView(APIView):
         """Проверить и зарегистрировать нового пользователя."""
 
         serializer = SignUpSerializer(data=request.data)
-        if serializer.is_valid(raise_exception=True):
-            user, _ = User.objects.get_or_create(**serializer.validated_data)
+        serializer.is_valid(raise_exception=True)
+        user, created = User.objects.get_or_create(**serializer.validated_data)
 
-            # Отправить письмо с кодом.
-            confirmation_code = send_confirmation_email(user.email)
+        # Отправить письмо с кодом.
+        confirmation_code = send_confirmation_email(user.email)
 
-            user.confirmation_code = confirmation_code
-            user.save()
+        user.confirmation_code = confirmation_code
+        user.save()
 
-            return Response(serializer.data, status=status.HTTP_200_OK)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class ReviewViewSet(viewsets.ModelViewSet):

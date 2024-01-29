@@ -47,9 +47,6 @@ class User(AbstractUser):
         max_length=6,
     )
 
-    class Meta:
-        ordering = ("pk",)
-
     def __str__(self):
         return self.username[:15]
 
@@ -60,9 +57,6 @@ class User(AbstractUser):
     @property
     def is_moder(self):
         return self.role == self.MODERATOR
-
-
-User = get_user_model()
 
 
 class CategoryGenreModel(models.Model):
