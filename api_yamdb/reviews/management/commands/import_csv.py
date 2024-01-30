@@ -21,7 +21,7 @@ def find_data(csv_file):
     csv_path = os.path.join(
         settings.BASE_DIR, "reviews/management/commands/data", csv_file
     )
-    return csv.reader(open(csv_path), delimiter=",")
+    return csv.reader(open(csv_path, encoding="utf-8"), delimiter=",")
 
 
 class Command(BaseCommand):

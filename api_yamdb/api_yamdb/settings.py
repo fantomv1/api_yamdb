@@ -33,7 +33,7 @@ INSTALLED_APPS = [
     "reviews.apps.ReviewsConfig",
 ]
 
-AUTH_USER_MODEL = "reviews.MyUser"  # Подключить кастомную модель.
+AUTH_USER_MODEL = "reviews.User"  # Подключить кастомную модель.
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -114,7 +114,7 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # Internationalization
 
-LANGUAGE_CODE = 'ru-RU'
+LANGUAGE_CODE = "ru-RU"
 
 TIME_ZONE = "UTC"
 

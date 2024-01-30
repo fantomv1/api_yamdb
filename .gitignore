@@ -147,6 +147,7 @@ dmypy.json
 
 # Папки со статикой и медиа.
 media/
+static/
 
 pyproject.toml
 .env

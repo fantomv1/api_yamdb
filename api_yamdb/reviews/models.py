@@ -1,19 +1,27 @@
 from datetime import datetime
 
-from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.validators import UnicodeUsernameValidator
-from django.core.validators import MaxValueValidator, MinValueValidator
 from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
+from reviews.numbers import (
+    MAX_LEN_CONF_CODE,
+    MAX_LEN_NAME,
+    MAX_LEN_ROLE,
+    MAX_LEN_STR,
+    MAX_LEN_USERNAME,
+    MAX_SCORE,
+    MIN_SCORE,
+)
 from reviews.validators import validate_username
 
 
 YEAR_ERROR = "Недействительный год выпуска!"
 
 
-class MyUser(AbstractUser):
+class User(AbstractUser):
     ADMIN = "admin"
     MODERATOR = "moderator"
     USER = "user"
@@ -25,7 +33,8 @@ class MyUser(AbstractUser):
     ]
 
     username = models.CharField(
-        max_length=150,
+        "Пользователь",
+        max_length=MAX_LEN_USERNAME,
         unique=True,
         validators=(validate_username, UnicodeUsernameValidator()),
     )
@@ -33,26 +42,28 @@ class MyUser(AbstractUser):
         "Почта",
         unique=True,
     )
-    bio = models.CharField(
+    bio = models.TextField(
         "Биография",
-        max_length=255,
         blank=True,
     )
     role = models.CharField(
-        max_length=50,
+        "Роль",
+        max_length=MAX_LEN_ROLE,
         default=USER,
         choices=ROLE_CHOICES,
     )
     confirmation_code = models.CharField(
         "Код подтверждения",
-        max_length=6,
+        max_length=MAX_LEN_CONF_CODE,
     )
 
     class Meta:
-        ordering = ("pk",)
+        verbose_name = "Пользователь"
+        verbose_name_plural = "Пользователи"
+        ordering = ("username",)
 
     def __str__(self):
-        return self.username[:15]
+        return self.username[:MAX_LEN_STR]
 
     @property
     def is_admin(self):
@@ -63,10 +74,8 @@ class MyUser(AbstractUser):
         return self.role == self.MODERATOR
 
 
-User = get_user_model()
-
-
 class CategoryGenreModel(models.Model):
+    name = models.CharField("Название", max_length=MAX_LEN_NAME)
     slug = models.SlugField(unique=True)
 
     class Meta:
@@ -74,21 +83,18 @@ class CategoryGenreModel(models.Model):
         ordering = ("name",)
 
     def __str__(self):
-        return self.name[:15]
+        return self.name[:MAX_LEN_STR]
 
 
 class Category(CategoryGenreModel):
-    name = models.CharField("Название", max_length=256)
-
     class Meta(CategoryGenreModel.Meta):
         verbose_name = "Категория"
         verbose_name_plural = "Категории"
 
 
 class Genre(CategoryGenreModel):
-    name = models.CharField("Название", max_length=256)
-
     class Meta(CategoryGenreModel.Meta):
+        verbose_name = "Жанр"
         verbose_name_plural = "Жанры"
 
 
@@ -99,11 +105,8 @@ def validate_year(value):
 
 
 class Title(models.Model):
-    name = models.CharField("Название", max_length=256)
-    year = models.SmallIntegerField(
-        "Год выпуска",
-        validators=[validate_year]
-    )
+    name = models.CharField("Название", max_length=MAX_LEN_NAME)
+    year = models.SmallIntegerField("Год выпуска", validators=[validate_year])
     description = models.TextField("Описание", null=True, blank=True)
     genre = models.ManyToManyField(
         Genre, blank=True, through="GenreTitle", verbose_name="Жанр"
@@ -124,7 +127,8 @@ class Title(models.Model):
 
     def __str__(self):
         return (
-            f"{self.name[:10]} {self.year} {self.description[:20]}"
+            f"{self.name[:MAX_LEN_STR]} {self.year}"
+            f"{self.description[:MAX_LEN_STR]}"
             f"{self.genre} {self.category}"
         )
 
@@ -135,9 +139,12 @@ class GenreTitle(models.Model):
 
 
 class ReviewCommentModel(models.Model):
-    text = models.TextField(verbose_name="Текст",)
+    text = models.TextField(
+        verbose_name="Текст",
+    )
     pub_date = models.DateTimeField(
-        verbose_name="Дата публикации", auto_now_add=True,
+        verbose_name="Дата публикации",
+        auto_now_add=True,
     )
 
     class Meta:
@@ -149,20 +156,22 @@ class Review(ReviewCommentModel):
     title = models.ForeignKey(
         Title,
         on_delete=models.CASCADE,
-        related_name="reviews",
         verbose_name="Произведение",
     )
+    text = models.TextField(
+        "Текст",
+    )
     author = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name="reviews",
-        verbose_name="Автор",
+        User, on_delete=models.CASCADE, verbose_name="Автор"
     )
     score = models.PositiveSmallIntegerField(
         default=None,
         help_text="Оценка должна быть от 1 до 10.",
         verbose_name="Оценка",
-        validators=[MinValueValidator(1), MaxValueValidator(10)],
+        validators=[
+            MinValueValidator(MIN_SCORE),
+            MaxValueValidator(MAX_SCORE),
+        ],
     )
 
     class Meta(ReviewCommentModel.Meta):
@@ -173,9 +182,10 @@ class Review(ReviewCommentModel):
                 fields=("title", "author"), name="unique_person"
             ),
         )
+        default_related_name = "reviews"
 
     def __str__(self):
-        return f"{self.text[:10]} {self.author} {self.score}"
+        return f"{self.text[:MAX_LEN_STR]} {self.author} {self.score}"
 
 
 class Comment(ReviewCommentModel):
@@ -185,16 +195,18 @@ class Comment(ReviewCommentModel):
         related_name="comments",
         verbose_name="Отзыв",
     )
+    text = models.TextField(
+        "Текст",
+    )
     author = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name="comments",
-        verbose_name="Автор",
+        User, on_delete=models.CASCADE, verbose_name="Автор"
     )
 
     class Meta(ReviewCommentModel.Meta):
         verbose_name = "Комментарий"
         verbose_name_plural = "Комментарии"
+        ordering = ("-pub_date",)
+        default_related_name = "comments"
 
     def __str__(self):
-        return f"{self.text[:10]} {self.author}"
+        return f"{self.text[:MAX_LEN_STR]} {self.author}"
