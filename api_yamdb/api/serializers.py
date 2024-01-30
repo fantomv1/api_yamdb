@@ -60,6 +60,8 @@ class GetTitleSerializer(serializers.ModelSerializer):
 
 
 class SignUpSerializer(serializers.ModelSerializer):
+    username = serializers.RegexField(regex=r'^[\w.@+-]+\Z', max_length=150)
+    email = serializers.EmailField(max_length=254)
 
     class Meta:
         model = User
@@ -68,29 +70,28 @@ class SignUpSerializer(serializers.ModelSerializer):
             "username",
         )
 
-    def create(self, validated_data):
-        username = validated_data["username"]
-        email = validated_data["email"]
-        existing_user = User.objects.filter(username=username).first()
-        if existing_user:
-            if existing_user.email != email:
-                raise ValidationError(
-                    "Несоответствие email для зарегистрированного"
-                    " пользователя"
-                )
-            raise ValidationError(
-                "Пользователь уже зарегистрирован"
+    def validate(self, data):
+        if User.objects.filter(
+            username=data.get('username'), email=data.get('email')
+        ).exists():
+            return data
+        elif User.objects.filter(username=data.get('username')).exists():
+            raise serializers.ValidationError('Это имя уже занято')
+        elif User.objects.filter(email=data.get('email')).exists():
+            raise serializers.ValidationError('Эта почта уже занята')
+        return data
+
+    def validate_username(self, value):
+        if value == 'me':
+            raise serializers.ValidationError(
+                'Вы не можете использовать это имя'
             )
-        return super().create(validated_data)
+        return value
 
 
 class TokenObtainWithConfirmationSerializer(serializers.Serializer):
     username = serializers.CharField()
     confirmation_code = serializers.CharField()
-
-    class Meta:
-        model = User
-        fields = ('username', 'confirmation_code')
 
 
 class UserSerializer(serializers.ModelSerializer):

@@ -110,8 +110,7 @@ class UsersViewSet(viewsets.ModelViewSet):
         )
         if serializer.is_valid(raise_exception=True):
             if self.request.method == "PATCH":
-                serializer.validated_data.pop("role", None)
-            serializer.save()
+                serializer.save(role=self.request.user.role)
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -151,36 +150,19 @@ class SignupView(APIView):
     def post(self, request, *args, **kwargs):
         """Проверить и зарегистрировать нового пользователя."""
 
-        """# Проверить, существует ли пользователь с таким именем пользователя.
-        username = request.data.get("username")
-        email = request.data.get("email")
-        existing_user = User.objects.filter(username=username).first()
-        if existing_user:
-            if existing_user.email != email:
-                return Response(
-                    {
-                        "detail": (
-                            "Несоответствие email для зарегистрированного"
-                            " пользователя"
-                        )
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            return Response(
-                {"detail": "Пользователь уже зарегистрирован"},
-                status=status.HTTP_200_OK,
-            )"""
-
         serializer = SignUpSerializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
-            user, created = User.objects.get_or_create(**serializer.validated_data)
+            user, _ = User.objects.get_or_create(**serializer.validated_data)
 
-        # Отправить письмо с кодом.
-        confirmation_code = send_confirmation_email(user.email)
-        user.confirmation_code = confirmation_code
-        user.save()
+            # Отправить письмо с кодом.
+            confirmation_code = send_confirmation_email(user.email)
 
-        return Response(serializer.data, status=status.HTTP_200_OK)
+            user.confirmation_code = confirmation_code
+            user.save()
+
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
