@@ -8,7 +8,15 @@ from django.core.exceptions import ValidationError
 from django.db import models
 
 from reviews.validators import validate_username
-
+from reviews.numbers import (
+    MAX_LEN_USERNAME,
+    MAX_LEN_ROLE,
+    MAX_LEN_CONF_CODE,
+    MAX_LEN_STR,
+    MAX_LEN_NAME,
+    MIN_SCORE,
+    MAX_SCORE,
+)
 
 YEAR_ERROR = "Недействительный год выпуска!"
 
@@ -25,7 +33,8 @@ class User(AbstractUser):
     ]
 
     username = models.CharField(
-        max_length=150,
+        "Пользователь",
+        max_length=MAX_LEN_USERNAME,
         unique=True,
         validators=(validate_username, UnicodeUsernameValidator()),
     )
@@ -38,17 +47,22 @@ class User(AbstractUser):
         blank=True,
     )
     role = models.CharField(
-        max_length=50,
+        "Роль",
+        max_length=MAX_LEN_ROLE,
         default=USER,
         choices=ROLE_CHOICES,
     )
     confirmation_code = models.CharField(
         "Код подтверждения",
-        max_length=6,
+        max_length=MAX_LEN_CONF_CODE,
     )
 
+    class Meta:
+        verbose_name = "Пользователь"
+        verbose_name_plural = "Пользователи"
+
     def __str__(self):
-        return self.username[:15]
+        return self.username[:MAX_LEN_STR]
 
     @property
     def is_admin(self):
@@ -60,28 +74,27 @@ class User(AbstractUser):
 
 
 class CategoryGenreModel(models.Model):
+    name = models.CharField("Название", max_length=MAX_LEN_NAME)
     slug = models.SlugField(unique=True)
 
     class Meta:
-        abstract = True  # Абстрактная модель.
+        abstract = True
         ordering = ("name",)
 
     def __str__(self):
-        return self.name[:15]
+        return self.name[:MAX_LEN_STR]
 
 
 class Category(CategoryGenreModel):
-    name = models.CharField("Название", max_length=256)
 
-    class Meta(CategoryGenreModel.Meta):  # Добавил наследование (Meta наследуется отдельно)
+    class Meta(CategoryGenreModel.Meta):
         verbose_name = "Категория"
         verbose_name_plural = "Категории"
 
 
 class Genre(CategoryGenreModel):
-    name = models.CharField("Название", max_length=256)
 
-    class Meta(CategoryGenreModel.Meta):  # Добавил наследование.
+    class Meta(CategoryGenreModel.Meta):
         verbose_name = "Жанр"
         verbose_name_plural = "Жанры"
 
@@ -93,7 +106,7 @@ def validate_year(value):
 
 
 class Title(models.Model):
-    name = models.CharField("Название", max_length=256)
+    name = models.CharField("Название", max_length=MAX_LEN_NAME)
     year = models.SmallIntegerField(
         "Год выпуска",
         validators=[validate_year]
@@ -118,7 +131,8 @@ class Title(models.Model):
 
     def __str__(self):
         return (
-            f"{self.name[:10]} {self.year} {self.description[:20]}"
+            f"{self.name[:MAX_LEN_STR]} {self.year}"
+            f"{self.description[:MAX_LEN_STR]}"
             f"{self.genre} {self.category}"
         )
 
@@ -132,16 +146,18 @@ class Review(models.Model):
     title = models.ForeignKey(
         Title,
         on_delete=models.CASCADE,
-        related_name="reviews",
     )
-    text = models.TextField()
+    text = models.TextField("Текст",)
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name="reviews",
+        verbose_name="Автор"
     )
     score = models.PositiveSmallIntegerField(
-        validators=[MinValueValidator(1), MaxValueValidator(10)],
+        "Оценка",
+        validators=[
+            MinValueValidator(MIN_SCORE), MaxValueValidator(MAX_SCORE)
+        ],
     )
     pub_date = models.DateTimeField("Дата публикации", auto_now_add=True)
 
@@ -154,22 +170,22 @@ class Review(models.Model):
                 fields=("title", "author"), name="unique_person"
             ),
         )
+        default_related_name = "reviews"
 
     def __str__(self):
-        return f"{self.text[:10]} {self.author} {self.score}"
+        return f"{self.text[:MAX_LEN_STR]} {self.author} {self.score}"
 
 
 class Comment(models.Model):
     review_id = models.ForeignKey(
         Review,
         on_delete=models.CASCADE,
-        related_name="comments",
     )
-    text = models.TextField()
+    text = models.TextField("Текст",)
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name="comments",
+        verbose_name="Автор"
     )
     pub_date = models.DateTimeField("Дата публикации", auto_now_add=True)
 
@@ -177,6 +193,7 @@ class Comment(models.Model):
         verbose_name = "Комментарий"
         verbose_name_plural = "Комментарии"
         ordering = ("-pub_date",)
+        default_related_name = "comments"
 
     def __str__(self):
-        return f"{self.text[:10]} {self.author}"
+        return f"{self.text[:MAX_LEN_STR]} {self.author}"
