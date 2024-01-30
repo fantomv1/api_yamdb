@@ -5,7 +5,6 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.generics import CreateAPIView
-from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import (
     AllowAny,
     IsAuthenticated,
@@ -61,7 +60,7 @@ class TitleViewSet(viewsets.ModelViewSet):
     search_fields = ("name",)
     permission_classes = (IsAdminOrReadOnly,)
     filterset_class = TitleFilter
-    filterset_fields = ('year',)
+    filterset_fields = ("year",)
     http_method_names = [
         m for m in viewsets.ModelViewSet.http_method_names if m not in ["put"]
     ]
@@ -84,7 +83,6 @@ class UsersViewSet(viewsets.ModelViewSet):
 
     serializer_class = UserSerializer
     permission_classes = (IsAdmin,)
-    pagination_class = PageNumberPagination
     lookup_field = "username"
     filter_backends = [filters.SearchFilter]
     search_fields = ["username"]
@@ -188,15 +186,13 @@ class ReviewViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Добавить автора отзыва и id произведения."""
         if serializer.is_valid():
-            serializer.save(
-                author=self.request.user, title=self.get_title()
-            )
+            serializer.save(author=self.request.user, title=self.get_title())
 
     def get_serializer_context(self):
         """Добавить автора отзыва и id произведения в context."""
         return {
             "title": self.kwargs.get("title_id"),
-            "author": self.request.user
+            "author": self.request.user,
         }
 
 
@@ -214,10 +210,7 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def get_review(self):
         """Получить отзыв."""
-        return get_object_or_404(
-            Review,
-            id=self.kwargs.get("review_id")
-        )
+        return get_object_or_404(Review, id=self.kwargs.get("review_id"))
 
     def get_queryset(self):
         """Вернуть все комментарии к отзыву."""

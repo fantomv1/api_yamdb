@@ -1,23 +1,19 @@
 from django.contrib.auth import get_user_model
-from django.core.exceptions import SuspiciousOperation
-from rest_framework.exceptions import ValidationError
-from rest_framework import serializers, status
-from rest_framework.response import Response
+from rest_framework import serializers
 
 from reviews.models import Category, Comment, Genre, Review, Title
+
 
 User = get_user_model()
 
 
 class CategoriesSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = Category
         exclude = ("id",)
 
 
 class GenresSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = Genre
         exclude = ("id",)
@@ -40,8 +36,11 @@ class TitleSerializer(serializers.ModelSerializer):
         slug_field="slug", queryset=Category.objects.all()
     )
     genre = GenresTitle(
-        slug_field="slug", queryset=Genre.objects.all(), many=True,
-        allow_empty=False, required=True
+        slug_field="slug",
+        queryset=Genre.objects.all(),
+        many=True,
+        allow_empty=False,
+        required=True,
     )
 
     class Meta:
@@ -60,7 +59,7 @@ class GetTitleSerializer(serializers.ModelSerializer):
 
 
 class SignUpSerializer(serializers.ModelSerializer):
-    username = serializers.RegexField(regex=r'^[\w.@+-]+\Z', max_length=150)
+    username = serializers.RegexField(regex=r"^[\w.@+-]+\Z", max_length=150)
     email = serializers.EmailField(max_length=254)
 
     class Meta:
@@ -72,19 +71,19 @@ class SignUpSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         if User.objects.filter(
-            username=data.get('username'), email=data.get('email')
+            username=data.get("username"), email=data.get("email")
         ).exists():
             return data
-        elif User.objects.filter(username=data.get('username')).exists():
-            raise serializers.ValidationError('Это имя уже занято')
-        elif User.objects.filter(email=data.get('email')).exists():
-            raise serializers.ValidationError('Эта почта уже занята')
+        elif User.objects.filter(username=data.get("username")).exists():
+            raise serializers.ValidationError("Это имя уже занято")
+        elif User.objects.filter(email=data.get("email")).exists():
+            raise serializers.ValidationError("Эта почта уже занята")
         return data
 
     def validate_username(self, value):
-        if value == 'me':
+        if value == "me":
             raise serializers.ValidationError(
-                'Вы не можете использовать это имя'
+                "Вы не можете использовать это имя"
             )
         return value
 
@@ -120,10 +119,7 @@ class ReviewSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         title = self.context["title"]
         author = self.context["author"]
-        if Review.objects.filter(
-            title=title,
-            author=author
-        ).exists():
+        if Review.objects.filter(title=title, author=author).exists():
             raise serializers.ValidationError("Отзыв уже создан.")
         return super().create(validated_data)
 
