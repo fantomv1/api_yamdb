@@ -107,10 +107,9 @@ class UsersViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(
             request.user, data=request.data, partial=True
         )
-        if serializer.is_valid():
+        if serializer.is_valid(raise_exception=True):
             if self.request.method == "PATCH":
-                serializer.validated_data.pop("role", None)
-            serializer.save()
+                serializer.save(role=self.request.user.role)
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -133,9 +132,6 @@ class TokenObtainWithConfirmationView(CreateAPIView):
         username = serializer.validated_data["username"]
         confirmation_code = serializer.validated_data["confirmation_code"]
 
-        if username == "me":
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-
         user = get_object_or_404(User, username=username)
 
         if confirmation_code == user.confirmation_code:
@@ -152,36 +148,10 @@ class SignupView(APIView):
 
     def post(self, request, *args, **kwargs):
         """Проверить и зарегистрировать нового пользователя."""
-        username = request.data.get("username")
-        email = request.data.get("email")
-
-        if username == "me":
-            return Response(
-                {"detail": 'Недопустимое значение "me" для username'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        # Проверить, существует ли пользователь с таким именем пользователя.
-        existing_user = User.objects.filter(username=username).first()
-        if existing_user:
-            if existing_user.email != email:
-                return Response(
-                    {
-                        "detail": (
-                            "Несоответствие email для зарегистрированного"
-                            " пользователя"
-                        )
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            return Response(
-                {"detail": "Пользователь уже зарегистрирован"},
-                status=status.HTTP_200_OK,
-            )
 
         serializer = SignUpSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.save()
+        if serializer.is_valid(raise_exception=True):
+            user, _ = User.objects.get_or_create(**serializer.validated_data)
 
             # Отправить письмо с кодом.
             confirmation_code = send_confirmation_email(user.email)

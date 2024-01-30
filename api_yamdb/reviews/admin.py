@@ -6,14 +6,29 @@ from reviews.models import User, Category, Comment, Genre, Review, Title
 
 UserAdmin.fieldsets += (("Extra Fields", {"fields": ("bio", "role")}),)
 
-admin.site.register(User, UserAdmin)
+
+@admin.register(User)
+class UserAdmin(admin.ModelAdmin):
+    list_display = (
+        'username',
+        'email',
+        'role'
+    )
+    list_editable = (
+        'role',
+    )
+    search_fields = ('username',)
+    list_filter = ('role',)
+    list_display_links = ('username',)
 
 
+@admin.register(Title)
 class TitleAdmin(admin.ModelAdmin):
     list_display = (
         'name',
         'year',
-        'category'
+        'category',
+        'get_genres'
     )
     list_editable = (
         'category',
@@ -22,9 +37,52 @@ class TitleAdmin(admin.ModelAdmin):
     list_filter = ('category',)
     list_display_links = ('name',)
 
+    def get_genres(self, instance):
+        return [genre.name for genre in instance.genres.all()]
 
-admin.site.register(Category)
-admin.site.register(Genre)
-admin.site.register(Title, TitleAdmin)
-admin.site.register(Review)
-admin.site.register(Comment)
+
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+    list_display = (
+        'id',
+        'name',
+        'slug',
+    )
+    search_fields = ('name',)
+    ordering = ('-id',)
+
+
+@admin.register(Genre)
+class GenreAdmin(admin.ModelAdmin):
+    list_display = (
+        'id',
+        'name',
+        'slug',
+    )
+    search_fields = ('name',)
+
+
+@admin.register(Review)
+class ReviewAdmin(admin.ModelAdmin):
+    list_display = (
+        'id',
+        'text',
+        'author',
+        'score',
+        'pub_date',
+        'title_id',
+    )
+    search_fields = ('text', 'author')
+    list_filter = ('author',)
+
+
+@admin.register(Comment)
+class CommentAdmin(admin.ModelAdmin):
+    list_display = (
+        'id',
+        'text',
+        'author',
+        'pub_date',
+    )
+    search_fields = ('text', 'author')
+    list_filter = ('author',)

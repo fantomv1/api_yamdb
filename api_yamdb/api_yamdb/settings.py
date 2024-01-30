@@ -33,7 +33,7 @@ INSTALLED_APPS = [
     "reviews.apps.ReviewsConfig",
 ]
 
-AUTH_USER_MODEL = "reviews.MyUser"  # Подключить кастомную модель.
+AUTH_USER_MODEL = "reviews.User"  # Подключить кастомную модель.
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

@@ -1,5 +1,8 @@
 from django.contrib.auth import get_user_model
-from rest_framework import serializers
+from django.core.exceptions import SuspiciousOperation
+from rest_framework.exceptions import ValidationError
+from rest_framework import serializers, status
+from rest_framework.response import Response
 
 from reviews.models import Category, Comment, Genre, Review, Title
 
@@ -57,12 +60,33 @@ class GetTitleSerializer(serializers.ModelSerializer):
 
 
 class SignUpSerializer(serializers.ModelSerializer):
+    username = serializers.RegexField(regex=r'^[\w.@+-]+\Z', max_length=150)
+    email = serializers.EmailField(max_length=254)
+
     class Meta:
         model = User
         fields = (
             "email",
             "username",
         )
+
+    def validate(self, data):
+        if User.objects.filter(
+            username=data.get('username'), email=data.get('email')
+        ).exists():
+            return data
+        elif User.objects.filter(username=data.get('username')).exists():
+            raise serializers.ValidationError('Это имя уже занято')
+        elif User.objects.filter(email=data.get('email')).exists():
+            raise serializers.ValidationError('Эта почта уже занята')
+        return data
+
+    def validate_username(self, value):
+        if value == 'me':
+            raise serializers.ValidationError(
+                'Вы не можете использовать это имя'
+            )
+        return value
 
 
 class TokenObtainWithConfirmationSerializer(serializers.Serializer):
