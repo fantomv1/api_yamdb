@@ -1,19 +1,17 @@
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
 from reviews.models import Category, Comment, Genre, Review, Title, User
 
 
-UserAdmin.fieldsets += (("Extra Fields", {"fields": ("bio", "role")}),)
-
-
 @admin.register(User)
-class UserAdmin(admin.ModelAdmin):
+class UserAdmin(BaseUserAdmin):
     list_display = ("username", "email", "role")
     list_editable = ("role",)
     search_fields = ("username",)
     list_filter = ("role",)
     list_display_links = ("username",)
+    fieldsets = (("Extra Fields", {"fields": ("bio", "role")}),)
 
 
 @admin.register(Title)

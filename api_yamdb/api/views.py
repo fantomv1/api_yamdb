@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.contrib.auth.tokens import default_token_generator
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
@@ -60,7 +61,6 @@ class TitleViewSet(viewsets.ModelViewSet):
     search_fields = ("name",)
     permission_classes = (IsAdminOrReadOnly,)
     filterset_class = TitleFilter
-    filterset_fields = ("year",)
     http_method_names = [
         m for m in viewsets.ModelViewSet.http_method_names if m not in ["put"]
     ]
@@ -102,14 +102,18 @@ class UsersViewSet(viewsets.ModelViewSet):
     )
     def get_update_me(self, request):
         """Получить и обновить информацию о текущем пользователе."""
-        serializer = self.get_serializer(
-            request.user, data=request.data, partial=True
-        )
-        if serializer.is_valid(raise_exception=True):
-            if self.request.method == "PATCH":
-                serializer.save(role=self.request.user.role)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        if request.method == 'GET':
+            serializer = self.get_serializer(request.user)
+            return Response(data=serializer.data, status=status.HTTP_200_OK)
+        if request.method == 'PATCH':
+            serializer = self.get_serializer(
+                request.user,
+                data=request.data,
+                partial=True
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save(role=self.request.user.role)
+            return Response(data=serializer.data, status=status.HTTP_200_OK)
 
 
 class TokenObtainWithConfirmationView(CreateAPIView):
@@ -126,13 +130,12 @@ class TokenObtainWithConfirmationView(CreateAPIView):
         """Создать токен."""
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
-        username = serializer.validated_data["username"]
-        confirmation_code = serializer.validated_data["confirmation_code"]
-
-        user = get_object_or_404(User, username=username)
-
-        if confirmation_code == user.confirmation_code:
+        user = get_object_or_404(
+            User, username=serializer.validated_data["username"]
+        )
+        if default_token_generator.check_token(
+            user, serializer.validated_data["confirmation_code"]
+        ):
             token = AccessToken.for_user(user)
             return Response(
                 {"token": str(token)},
@@ -148,18 +151,16 @@ class SignupView(APIView):
         """Проверить и зарегистрировать нового пользователя."""
 
         serializer = SignUpSerializer(data=request.data)
-        if serializer.is_valid(raise_exception=True):
-            user, _ = User.objects.get_or_create(**serializer.validated_data)
+        serializer.is_valid(raise_exception=True)
+        user, _ = User.objects.get_or_create(**serializer.validated_data)
 
-            # Отправить письмо с кодом.
-            confirmation_code = send_confirmation_email(user.email)
+        # Отправить письмо с кодом.
+        confirmation_code = send_confirmation_email(user.email)
+        default_token_generator.check_token(
+            user, confirmation_code
+        )
 
-            user.confirmation_code = confirmation_code
-            user.save()
-
-            return Response(serializer.data, status=status.HTTP_200_OK)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
@@ -185,8 +186,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """Добавить автора отзыва и id произведения."""
-        if serializer.is_valid():
-            serializer.save(author=self.request.user, title=self.get_title())
+        serializer.save(author=self.request.user, title=self.get_title())
 
     def get_serializer_context(self):
         """Добавить автора отзыва и id произведения в context."""

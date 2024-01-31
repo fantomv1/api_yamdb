@@ -1,13 +1,9 @@
-from datetime import datetime
-
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.validators import UnicodeUsernameValidator
-from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 from reviews.numbers import (
-    MAX_LEN_CONF_CODE,
     MAX_LEN_NAME,
     MAX_LEN_ROLE,
     MAX_LEN_STR,
@@ -15,10 +11,7 @@ from reviews.numbers import (
     MAX_SCORE,
     MIN_SCORE,
 )
-from reviews.validators import validate_username
-
-
-YEAR_ERROR = "Недействительный год выпуска!"
+from reviews.validators import validate_username, validate_year
 
 
 class User(AbstractUser):
@@ -51,10 +44,6 @@ class User(AbstractUser):
         max_length=MAX_LEN_ROLE,
         default=USER,
         choices=ROLE_CHOICES,
-    )
-    confirmation_code = models.CharField(
-        "Код подтверждения",
-        max_length=MAX_LEN_CONF_CODE,
     )
 
     class Meta:
@@ -96,12 +85,6 @@ class Genre(CategoryGenreModel):
     class Meta(CategoryGenreModel.Meta):
         verbose_name = "Жанр"
         verbose_name_plural = "Жанры"
-
-
-def validate_year(value):
-    if value > datetime.now().year:
-        raise ValidationError(YEAR_ERROR)
-    return value
 
 
 class Title(models.Model):
@@ -146,6 +129,9 @@ class ReviewCommentModel(models.Model):
         verbose_name="Дата публикации",
         auto_now_add=True,
     )
+    author = models.ForeignKey(
+        User, on_delete=models.CASCADE, verbose_name="Автор"
+    )
 
     class Meta:
         abstract = True
@@ -157,12 +143,6 @@ class Review(ReviewCommentModel):
         Title,
         on_delete=models.CASCADE,
         verbose_name="Произведение",
-    )
-    text = models.TextField(
-        "Текст",
-    )
-    author = models.ForeignKey(
-        User, on_delete=models.CASCADE, verbose_name="Автор"
     )
     score = models.PositiveSmallIntegerField(
         default=None,
@@ -195,17 +175,10 @@ class Comment(ReviewCommentModel):
         related_name="comments",
         verbose_name="Отзыв",
     )
-    text = models.TextField(
-        "Текст",
-    )
-    author = models.ForeignKey(
-        User, on_delete=models.CASCADE, verbose_name="Автор"
-    )
 
     class Meta(ReviewCommentModel.Meta):
         verbose_name = "Комментарий"
         verbose_name_plural = "Комментарии"
-        ordering = ("-pub_date",)
         default_related_name = "comments"
 
     def __str__(self):

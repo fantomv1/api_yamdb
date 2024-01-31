@@ -28,14 +28,18 @@ router_v1.register(
     basename="comments",
 )
 
-urls_v1 = [
-    path("", include(router_v1.urls)),
-    path("auth/signup/", SignupView.as_view()),
+urls_v1_auth = urls_v1 = [
+    path("signup/", SignupView.as_view()),
     path(
-        "auth/token/",
+        "token/",
         TokenObtainWithConfirmationView.as_view(),
         name="token_obtain_with_confirmation",
     ),
+]
+
+urls_v1 = [
+    path("", include(router_v1.urls)),
+    path("auth/", include(urls_v1_auth)),
 ]
 
 urlpatterns = [

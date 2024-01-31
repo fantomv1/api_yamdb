@@ -1,6 +1,11 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
+from reviews.numbers import (
+    DEFAULT_NUM,
+    MAX_LEN_EMAIL,
+    MAX_LEN_USERNAME
+)
 from reviews.models import Category, Comment, Genre, Review, Title
 
 
@@ -51,7 +56,7 @@ class TitleSerializer(serializers.ModelSerializer):
 class GetTitleSerializer(serializers.ModelSerializer):
     category = CategoriesSerializer(read_only=True)
     genre = GenresSerializer(read_only=True, many=True)
-    rating = serializers.IntegerField(read_only=True, default=None)
+    rating = serializers.IntegerField(read_only=True, default=DEFAULT_NUM)
 
     class Meta:
         model = Title
@@ -59,8 +64,10 @@ class GetTitleSerializer(serializers.ModelSerializer):
 
 
 class SignUpSerializer(serializers.ModelSerializer):
-    username = serializers.RegexField(regex=r"^[\w.@+-]+\Z", max_length=150)
-    email = serializers.EmailField(max_length=254)
+    username = serializers.RegexField(
+        regex=r"^[\w.@+-]+\Z", max_length=MAX_LEN_USERNAME
+    )
+    email = serializers.EmailField(max_length=MAX_LEN_EMAIL)
 
     class Meta:
         model = User
@@ -74,9 +81,9 @@ class SignUpSerializer(serializers.ModelSerializer):
             username=data.get("username"), email=data.get("email")
         ).exists():
             return data
-        elif User.objects.filter(username=data.get("username")).exists():
+        if User.objects.filter(username=data.get("username")).exists():
             raise serializers.ValidationError("Это имя уже занято")
-        elif User.objects.filter(email=data.get("email")).exists():
+        if User.objects.filter(email=data.get("email")).exists():
             raise serializers.ValidationError("Эта почта уже занята")
         return data
 
