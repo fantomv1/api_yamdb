@@ -122,10 +122,6 @@ class TokenObtainWithConfirmationView(CreateAPIView):
     serializer_class = TokenObtainWithConfirmationSerializer
     permission_classes = (AllowAny,)
 
-    def get_queryset(self):
-        """Получить объект пользователя."""
-        return get_object_or_404(User, username=self.kwargs["username"])
-
     def create(self, request, *args, **kwargs):
         """Создать токен."""
         serializer = self.get_serializer(data=request.data)
@@ -188,12 +184,6 @@ class ReviewViewSet(viewsets.ModelViewSet):
         """Добавить автора отзыва и id произведения."""
         serializer.save(author=self.request.user, title=self.get_title())
 
-    def get_serializer_context(self):
-        """Добавить автора отзыва и id произведения в context."""
-        return {
-            "title": self.kwargs.get("title_id"),
-            "author": self.request.user,
-        }
 
 
 class CommentViewSet(viewsets.ModelViewSet):

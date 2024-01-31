@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 
 from reviews.numbers import (
@@ -123,12 +124,19 @@ class ReviewSerializer(serializers.ModelSerializer):
         model = Review
         exclude = ("title",)
 
-    def create(self, validated_data):
-        title = self.context["title"]
-        author = self.context["author"]
-        if Review.objects.filter(title=title, author=author).exists():
-            raise serializers.ValidationError("Отзыв уже создан.")
-        return super().create(validated_data)
+    def validate(self, data):
+        if self.instance is None:
+            title_id = self.context['view'].kwargs.get('title_id')
+            reviews = get_object_or_404(Title, pk=title_id).reviews.all()
+            if reviews.filter(
+                author_id=self.context['request'].user.id
+            ).exists():
+                raise serializers.ValidationError(
+                    'Вы уже оставляли отзыв на это произведение.'
+                )
+        return data
+    
+
 
 
 class CommentSerializer(serializers.ModelSerializer):
