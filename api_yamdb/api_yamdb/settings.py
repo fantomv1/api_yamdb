@@ -29,8 +29,8 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "rest_framework_simplejwt",
-    "reviews.apps.ReviewsConfig",
     "api.apps.ApiConfig",
+    "reviews.apps.ReviewsConfig",
 ]
 
 AUTH_USER_MODEL = "reviews.User"  # Подключить кастомную модель.
@@ -114,7 +114,7 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # Internationalization
 
-LANGUAGE_CODE = 'ru-RU'
+LANGUAGE_CODE = "ru-RU"
 
 TIME_ZONE = "UTC"
 

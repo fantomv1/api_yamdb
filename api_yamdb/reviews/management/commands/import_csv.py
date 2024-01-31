@@ -10,16 +10,18 @@ from reviews.models import (
     Comment,
     Genre,
     GenreTitle,
-    Review,
     Title,
-    User,
+    Review,
+    User
 )
 
 
 def find_data(csv_file):
     """Найти и открыть нужный файл csv."""
-    csv_path = os.path.join(settings.BASE_DIR, "static/data", csv_file)
-    return csv.reader(open(csv_path), delimiter=",")
+    csv_path = os.path.join(
+        settings.BASE_DIR, "reviews/management/commands/data", csv_file
+    )
+    return csv.reader(open(csv_path, 'r', encoding='utf-8'), delimiter=",")
 
 
 class Command(BaseCommand):

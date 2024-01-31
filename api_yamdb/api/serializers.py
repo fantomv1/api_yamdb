@@ -1,23 +1,24 @@
 from django.contrib.auth import get_user_model
-from django.core.exceptions import SuspiciousOperation
-from rest_framework.exceptions import ValidationError
-from rest_framework import serializers, status
-from rest_framework.response import Response
+from rest_framework import serializers
 
+from reviews.numbers import (
+    DEFAULT_NUM,
+    MAX_LEN_EMAIL,
+    MAX_LEN_USERNAME
+)
 from reviews.models import Category, Comment, Genre, Review, Title
+
 
 User = get_user_model()
 
 
 class CategoriesSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = Category
         exclude = ("id",)
 
 
 class GenresSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = Genre
         exclude = ("id",)
@@ -40,8 +41,11 @@ class TitleSerializer(serializers.ModelSerializer):
         slug_field="slug", queryset=Category.objects.all()
     )
     genre = GenresTitle(
-        slug_field="slug", queryset=Genre.objects.all(), many=True,
-        allow_empty=False, required=True
+        slug_field="slug",
+        queryset=Genre.objects.all(),
+        many=True,
+        allow_empty=False,
+        required=True,
     )
 
     class Meta:
@@ -52,7 +56,7 @@ class TitleSerializer(serializers.ModelSerializer):
 class GetTitleSerializer(serializers.ModelSerializer):
     category = CategoriesSerializer(read_only=True)
     genre = GenresSerializer(read_only=True, many=True)
-    rating = serializers.IntegerField(read_only=True, default=None)
+    rating = serializers.IntegerField(read_only=True, default=DEFAULT_NUM)
 
     class Meta:
         model = Title
@@ -60,8 +64,10 @@ class GetTitleSerializer(serializers.ModelSerializer):
 
 
 class SignUpSerializer(serializers.ModelSerializer):
-    username = serializers.RegexField(regex=r'^[\w.@+-]+\Z', max_length=150)
-    email = serializers.EmailField(max_length=254)
+    username = serializers.RegexField(
+        regex=r"^[\w.@+-]+\Z", max_length=MAX_LEN_USERNAME
+    )
+    email = serializers.EmailField(max_length=MAX_LEN_EMAIL)
 
     class Meta:
         model = User
@@ -72,19 +78,19 @@ class SignUpSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         if User.objects.filter(
-            username=data.get('username'), email=data.get('email')
+            username=data.get("username"), email=data.get("email")
         ).exists():
             return data
-        elif User.objects.filter(username=data.get('username')).exists():
-            raise serializers.ValidationError('Это имя уже занято')
-        elif User.objects.filter(email=data.get('email')).exists():
-            raise serializers.ValidationError('Эта почта уже занята')
+        if User.objects.filter(username=data.get("username")).exists():
+            raise serializers.ValidationError("Это имя уже занято")
+        if User.objects.filter(email=data.get("email")).exists():
+            raise serializers.ValidationError("Эта почта уже занята")
         return data
 
     def validate_username(self, value):
-        if value == 'me':
+        if value == "me":
             raise serializers.ValidationError(
-                'Вы не можете использовать это имя'
+                "Вы не можете использовать это имя"
             )
         return value
 
@@ -117,6 +123,13 @@ class ReviewSerializer(serializers.ModelSerializer):
         model = Review
         exclude = ("title",)
 
+    def create(self, validated_data):
+        title = self.context["title"]
+        author = self.context["author"]
+        if Review.objects.filter(title=title, author=author).exists():
+            raise serializers.ValidationError("Отзыв уже создан.")
+        return super().create(validated_data)
+
 
 class CommentSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
@@ -126,4 +139,4 @@ class CommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
-        exclude = ("review_id",)
+        exclude = ("review",)
