@@ -25,43 +25,35 @@ class GenresSerializer(serializers.ModelSerializer):
         exclude = ("id",)
 
 
-class CategoriesTitle(serializers.SlugRelatedField):
-    def to_representation(self, value):
-        serializer = CategoriesSerializer(value)
-        return serializer.data
-
-
-class GenresTitle(serializers.SlugRelatedField):
-    def to_representation(self, value):
-        serializer = GenresSerializer(value)
-        return serializer.data
-
-
 class TitleSerializer(serializers.ModelSerializer):
-    category = CategoriesTitle(
+    category = serializers.SlugRelatedField(
         slug_field="slug", queryset=Category.objects.all()
     )
-    genre = GenresTitle(
+    genre = serializers.SlugRelatedField(
         slug_field="slug",
         queryset=Genre.objects.all(),
         many=True,
         allow_empty=False,
         required=True,
     )
-
-    class Meta:
-        model = Title
-        fields = "__all__"
-
-
-class GetTitleSerializer(serializers.ModelSerializer):
-    category = CategoriesSerializer(read_only=True)
-    genre = GenresSerializer(read_only=True, many=True)
     rating = serializers.IntegerField(read_only=True, default=DEFAULT_NUM)
 
     class Meta:
         model = Title
         fields = "__all__"
+
+    def to_representation(self, instance):
+        representation = super(
+            TitleSerializer, self
+        ).to_representation(instance)
+        representation['genre'] = CategoriesSerializer(
+            instance.genre.all(), many=True
+        ).data
+        if instance.category:
+            representation['category'] = GenresSerializer(
+                instance.category
+            ).data
+        return representation
 
 
 class SignUpSerializer(serializers.ModelSerializer):

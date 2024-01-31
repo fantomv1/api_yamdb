@@ -26,7 +26,6 @@ from api.serializers import (
     CategoriesSerializer,
     CommentSerializer,
     GenresSerializer,
-    GetTitleSerializer,
     ReviewSerializer,
     SignUpSerializer,
     TitleSerializer,
@@ -57,6 +56,7 @@ class GenresViewSet(GetPostDeleteViewSet):
 class TitleViewSet(viewsets.ModelViewSet):
     """Обрабатывает информацию о произведениях."""
 
+    serializer_class = TitleSerializer
     filter_backends = (filters.SearchFilter, DjangoFilterBackend)
     search_fields = ("name",)
     permission_classes = (IsAdminOrReadOnly,)
@@ -70,12 +70,6 @@ class TitleViewSet(viewsets.ModelViewSet):
         return Title.objects.annotate(rating=Avg("reviews__score")).order_by(
             "-year"
         )
-
-    def get_serializer_class(self):
-        """Заменить сериализатор."""
-        if self.action in ("list", "retrieve"):
-            return GetTitleSerializer
-        return TitleSerializer
 
 
 class UsersViewSet(viewsets.ModelViewSet):
