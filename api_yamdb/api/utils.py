@@ -22,5 +22,3 @@ def send_confirmation_email(email):
         recipient_list,
         fail_silently=False,
     )
-
-    return confirmation_token

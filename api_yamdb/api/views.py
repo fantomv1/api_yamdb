@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import SuspiciousOperation
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
@@ -109,8 +110,7 @@ class UsersViewSet(viewsets.ModelViewSet):
             request.user, data=request.data, partial=True
         )
         if serializer.is_valid(raise_exception=True):
-            if self.request.method == "PATCH":
-                serializer.save(role=self.request.user.role)
+            serializer.save(role=self.request.user.role)
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -135,7 +135,7 @@ class TokenObtainWithConfirmationView(CreateAPIView):
 
         user = get_object_or_404(User, username=username)
 
-        if confirmation_code == user.confirmation_code:
+        if default_token_generator.check_token(user, confirmation_code):
             token = AccessToken.for_user(user)
             return Response(
                 {"token": str(token)},
@@ -154,11 +154,7 @@ class SignupView(APIView):
         if serializer.is_valid(raise_exception=True):
             user, _ = User.objects.get_or_create(**serializer.validated_data)
 
-            # Отправить письмо с кодом.
-            confirmation_code = send_confirmation_email(user.email)
-
-            user.confirmation_code = confirmation_code
-            user.save()
+            send_confirmation_email(user.email)
 
             return Response(serializer.data, status=status.HTTP_200_OK)
 
