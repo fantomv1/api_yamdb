@@ -1,12 +1,11 @@
 from django.contrib.auth import get_user_model
-from django.core.exceptions import SuspiciousOperation
+from django.contrib.auth.tokens import default_token_generator
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.generics import CreateAPIView
-from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import (
     AllowAny,
     IsAuthenticated,
@@ -27,7 +26,6 @@ from api.serializers import (
     CategoriesSerializer,
     CommentSerializer,
     GenresSerializer,
-    GetTitleSerializer,
     ReviewSerializer,
     SignUpSerializer,
     TitleSerializer,
@@ -58,11 +56,11 @@ class GenresViewSet(GetPostDeleteViewSet):
 class TitleViewSet(viewsets.ModelViewSet):
     """Обрабатывает информацию о произведениях."""
 
+    serializer_class = TitleSerializer
     filter_backends = (filters.SearchFilter, DjangoFilterBackend)
     search_fields = ("name",)
     permission_classes = (IsAdminOrReadOnly,)
     filterset_class = TitleFilter
-    filterset_fields = ('year',)
     http_method_names = [
         m for m in viewsets.ModelViewSet.http_method_names if m not in ["put"]
     ]
@@ -73,19 +71,12 @@ class TitleViewSet(viewsets.ModelViewSet):
             "-year"
         )
 
-    def get_serializer_class(self):
-        """Заменить сериализатор."""
-        if self.action in ("list", "retrieve"):
-            return GetTitleSerializer
-        return TitleSerializer
-
 
 class UsersViewSet(viewsets.ModelViewSet):
     """Создаёт новых пользователей."""
 
     serializer_class = UserSerializer
     permission_classes = (IsAdmin,)
-    pagination_class = PageNumberPagination
     lookup_field = "username"
     filter_backends = [filters.SearchFilter]
     search_fields = ["username"]
@@ -105,14 +96,18 @@ class UsersViewSet(viewsets.ModelViewSet):
     )
     def get_update_me(self, request):
         """Получить и обновить информацию о текущем пользователе."""
-        serializer = self.get_serializer(
-            request.user, data=request.data, partial=True
-        )
-        if serializer.is_valid(raise_exception=True):
-            if self.request.method == "PATCH":
-                serializer.save(role=self.request.user.role)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        if request.method == 'GET':
+            serializer = self.get_serializer(request.user)
+            return Response(data=serializer.data, status=status.HTTP_200_OK)
+        if request.method == 'PATCH':
+            serializer = self.get_serializer(
+                request.user,
+                data=request.data,
+                partial=True
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save(role=self.request.user.role)
+            return Response(data=serializer.data, status=status.HTTP_200_OK)
 
 
 class TokenObtainWithConfirmationView(CreateAPIView):
@@ -121,21 +116,16 @@ class TokenObtainWithConfirmationView(CreateAPIView):
     serializer_class = TokenObtainWithConfirmationSerializer
     permission_classes = (AllowAny,)
 
-    def get_queryset(self):
-        """Получить объект пользователя."""
-        return get_object_or_404(User, username=self.kwargs["username"])
-
     def create(self, request, *args, **kwargs):
         """Создать токен."""
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
-        username = serializer.validated_data["username"]
-        confirmation_code = serializer.validated_data["confirmation_code"]
-
-        user = get_object_or_404(User, username=username)
-
-        if confirmation_code == user.confirmation_code:
+        user = get_object_or_404(
+            User, username=serializer.validated_data["username"]
+        )
+        if default_token_generator.check_token(
+            user, serializer.validated_data["confirmation_code"]
+        ):
             token = AccessToken.for_user(user)
             return Response(
                 {"token": str(token)},
@@ -151,18 +141,16 @@ class SignupView(APIView):
         """Проверить и зарегистрировать нового пользователя."""
 
         serializer = SignUpSerializer(data=request.data)
-        if serializer.is_valid(raise_exception=True):
-            user, _ = User.objects.get_or_create(**serializer.validated_data)
+        serializer.is_valid(raise_exception=True)
+        user, _ = User.objects.get_or_create(**serializer.validated_data)
 
-            # Отправить письмо с кодом.
-            confirmation_code = send_confirmation_email(user.email)
+        # Отправить письмо с кодом.
+        confirmation_code = send_confirmation_email(user.email)
+        default_token_generator.check_token(
+            user, confirmation_code
+        )
 
-            user.confirmation_code = confirmation_code
-            user.save()
-
-            return Response(serializer.data, status=status.HTTP_200_OK)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
@@ -188,18 +176,8 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """Добавить автора отзыва и id произведения."""
-        title = self.kwargs.get("title_id")
-        if Review.objects.filter(
-            title=title, author=self.request.user
-        ).exists():
-            raise SuspiciousOperation("Invalid JSON")
-        if serializer.is_valid():
-            serializer.save(
-                author=self.request.user, title=self.get_title()
-            )
+        serializer.save(author=self.request.user, title=self.get_title())
 
-    def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
@@ -216,8 +194,7 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def get_review(self):
         """Получить отзыв."""
-        review_id = self.kwargs.get("review_id")
-        return get_object_or_404(Review, id=review_id)
+        return get_object_or_404(Review, id=self.kwargs.get("review_id"))
 
     def get_queryset(self):
         """Вернуть все комментарии к отзыву."""
@@ -226,4 +203,4 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """Добавить автора комментария и id отзыва."""
-        serializer.save(author=self.request.user, review_id=self.get_review())
+        serializer.save(author=self.request.user, review=self.get_review())
