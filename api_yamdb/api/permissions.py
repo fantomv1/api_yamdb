@@ -27,7 +27,8 @@ class IsAuthorModerAdminOrReadOnly(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         """Разрешить доступ для автора/модера/админа или только для чтения."""
         return request.method in permissions.SAFE_METHODS or (
-            request.user.is_authenticated and (
+            request.user.is_authenticated
+            and (
                 obj.author == request.user
                 or (request.user.is_moder or request.user.is_admin)
             )

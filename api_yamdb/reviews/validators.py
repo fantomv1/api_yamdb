@@ -2,6 +2,7 @@ from datetime import datetime
 
 from django.core.exceptions import ValidationError
 
+
 YEAR_ERROR = "Недействительный год выпуска!"
 
 

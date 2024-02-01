@@ -20,18 +20,18 @@ class TitleAdmin(admin.ModelAdmin):
         "name",
         "year",
         "category",
-        "get_genres",
+        "_genre",
     )
-    list_editable = ("category",)
     search_fields = ("name",)
     list_filter = ("category",)
     list_display_links = ("name",)
 
-    def get_genres(self, instance):
-        return [genre.name for genre in instance.genres.all()]
+    @admin.display(
+        description="Жанры",
+    )
+    def _genre(self, obj):
+        return ",".join([genre.name for genre in obj.genre.all()])
 
-    def get_genres(self, instance):
-        return [genre.name for genre in instance.genres.all()]
 
 class OrderItemTabular(admin.TabularInline):
     model = Title
@@ -40,11 +40,12 @@ class OrderItemTabular(admin.TabularInline):
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
     list_display = (
-        "id",
         "name",
         "slug",
     )
+    list_editable = ("slug",)
     search_fields = ("name",)
+    list_display_links = ("name",)
     ordering = ("-id",)
     inlines = [
         OrderItemTabular,
@@ -54,11 +55,12 @@ class CategoryAdmin(admin.ModelAdmin):
 @admin.register(Genre)
 class GenreAdmin(admin.ModelAdmin):
     list_display = (
-        "id",
         "name",
         "slug",
     )
+    list_editable = ("slug",)
     search_fields = ("name",)
+    list_display_links = ("name",)
 
 
 @admin.register(Review)

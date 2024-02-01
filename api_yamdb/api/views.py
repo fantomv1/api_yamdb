@@ -96,14 +96,12 @@ class UsersViewSet(viewsets.ModelViewSet):
     )
     def get_update_me(self, request):
         """Получить и обновить информацию о текущем пользователе."""
-        if request.method == 'GET':
+        if request.method == "GET":
             serializer = self.get_serializer(request.user)
             return Response(data=serializer.data, status=status.HTTP_200_OK)
-        if request.method == 'PATCH':
+        if request.method == "PATCH":
             serializer = self.get_serializer(
-                request.user,
-                data=request.data,
-                partial=True
+                request.user, data=request.data, partial=True
             )
             serializer.is_valid(raise_exception=True)
             serializer.save(role=self.request.user.role)
@@ -146,9 +144,7 @@ class SignupView(APIView):
 
         # Отправить письмо с кодом.
         confirmation_code = send_confirmation_email(user.email)
-        default_token_generator.check_token(
-            user, confirmation_code
-        )
+        default_token_generator.check_token(user, confirmation_code)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -177,7 +173,6 @@ class ReviewViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Добавить автора отзыва и id произведения."""
         serializer.save(author=self.request.user, title=self.get_title())
-
 
 
 class CommentViewSet(viewsets.ModelViewSet):

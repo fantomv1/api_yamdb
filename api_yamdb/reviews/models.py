@@ -109,11 +109,7 @@ class Title(models.Model):
         ordering = ("-year",)
 
     def __str__(self):
-        return (
-            f"{self.name[:MAX_LEN_STR]} {self.year}"
-            f"{self.description[:MAX_LEN_STR]}"
-            f"{self.genre} {self.category}"
-        )
+        return self.name[:MAX_LEN_STR]
 
 
 class GenreTitle(models.Model):
@@ -165,7 +161,7 @@ class Review(ReviewCommentModel):
         default_related_name = "reviews"
 
     def __str__(self):
-        return f"{self.text[:MAX_LEN_STR]} {self.author} {self.score}"
+        return self.title[:MAX_LEN_STR]
 
 
 class Comment(ReviewCommentModel):
@@ -182,4 +178,4 @@ class Comment(ReviewCommentModel):
         default_related_name = "comments"
 
     def __str__(self):
-        return f"{self.text[:MAX_LEN_STR]} {self.author}"
+        return self.review[:MAX_LEN_STR]

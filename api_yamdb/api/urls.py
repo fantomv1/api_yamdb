@@ -28,7 +28,7 @@ router_v1.register(
     basename="comments",
 )
 
-urls_v1_auth = urls_v1 = [
+urls_v1_auth = [
     path("signup/", SignupView.as_view()),
     path(
         "token/",

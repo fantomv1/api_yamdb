@@ -2,12 +2,8 @@ from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 
-from reviews.numbers import (
-    DEFAULT_NUM,
-    MAX_LEN_EMAIL,
-    MAX_LEN_USERNAME
-)
 from reviews.models import Category, Comment, Genre, Review, Title
+from reviews.numbers import DEFAULT_NUM, MAX_LEN_EMAIL, MAX_LEN_USERNAME
 
 
 User = get_user_model()
@@ -43,14 +39,14 @@ class TitleSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
     def to_representation(self, instance):
-        representation = super(
-            TitleSerializer, self
-        ).to_representation(instance)
-        representation['genre'] = CategoriesSerializer(
+        representation = super(TitleSerializer, self).to_representation(
+            instance
+        )
+        representation["genre"] = CategoriesSerializer(
             instance.genre.all(), many=True
         ).data
         if instance.category:
-            representation['category'] = GenresSerializer(
+            representation["category"] = GenresSerializer(
                 instance.category
             ).data
         return representation
@@ -118,17 +114,15 @@ class ReviewSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         if self.instance is None:
-            title_id = self.context['view'].kwargs.get('title_id')
+            title_id = self.context["view"].kwargs.get("title_id")
             reviews = get_object_or_404(Title, pk=title_id).reviews.all()
             if reviews.filter(
-                author_id=self.context['request'].user.id
+                author_id=self.context["request"].user.id
             ).exists():
                 raise serializers.ValidationError(
-                    'Вы уже оставляли отзыв на это произведение.'
+                    "Вы уже оставляли отзыв на это произведение."
                 )
         return data
-    
-
 
 
 class CommentSerializer(serializers.ModelSerializer):
