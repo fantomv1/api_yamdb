@@ -99,13 +99,12 @@ class UsersViewSet(viewsets.ModelViewSet):
         if request.method == "GET":
             serializer = self.get_serializer(request.user)
             return Response(data=serializer.data, status=status.HTTP_200_OK)
-        if request.method == "PATCH":
-            serializer = self.get_serializer(
-                request.user, data=request.data, partial=True
-            )
-            serializer.is_valid(raise_exception=True)
-            serializer.save(role=self.request.user.role)
-            return Response(data=serializer.data, status=status.HTTP_200_OK)
+        serializer = self.get_serializer(
+            request.user, data=request.data, partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save(role=self.request.user.role)
+        return Response(data=serializer.data, status=status.HTTP_200_OK)
 
 
 class TokenObtainWithConfirmationView(CreateAPIView):
@@ -143,8 +142,7 @@ class SignupView(APIView):
         user, _ = User.objects.get_or_create(**serializer.validated_data)
 
         # Отправить письмо с кодом.
-        confirmation_code = send_confirmation_email(user.email)
-        default_token_generator.check_token(user, confirmation_code)
+        send_confirmation_email(user.email)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 

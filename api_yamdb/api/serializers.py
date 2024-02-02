@@ -113,11 +113,13 @@ class ReviewSerializer(serializers.ModelSerializer):
         exclude = ("title",)
 
     def validate(self, data):
-        if self.instance is None:
-            title_id = self.context["view"].kwargs.get("title_id")
-            reviews = get_object_or_404(Title, pk=title_id).reviews.all()
-            if reviews.filter(
-                author_id=self.context["request"].user.id
+        if self.context.get('request').method == 'POST':
+            title = get_object_or_404(
+                Title, id=self.context["view"].kwargs.get("title_id")
+            )
+            if Review.objects.filter(
+                author_id=self.context["request"].user,
+                title=title
             ).exists():
                 raise serializers.ValidationError(
                     "Вы уже оставляли отзыв на это произведение."
