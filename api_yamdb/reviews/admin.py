@@ -11,7 +11,7 @@ class UserAdmin(BaseUserAdmin):
     search_fields = ("username",)
     list_filter = ("role",)
     list_display_links = ("username",)
-    fieldsets = (("Extra Fields", {"fields": ("bio", "role")}),)
+    BaseUserAdmin.fieldsets += (("Extra Fields", {"fields": ("bio", "role")}),)
 
 
 @admin.register(Title)

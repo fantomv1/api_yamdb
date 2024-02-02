@@ -136,14 +136,11 @@ class SignupView(APIView):
 
     def post(self, request, *args, **kwargs):
         """Проверить и зарегистрировать нового пользователя."""
-
         serializer = SignUpSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user, _ = User.objects.get_or_create(**serializer.validated_data)
-
         # Отправить письмо с кодом.
         send_confirmation_email(user.email)
-
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
